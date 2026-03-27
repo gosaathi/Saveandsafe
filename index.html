@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ride Share App</title>
+
+<style>
+body {
+  margin:0;
+  font-family: Arial;
+  background: linear-gradient(135deg,#1e3c72,#2a5298);
+  color:white;
+}
+
+header {
+  text-align:center;
+  padding:15px;
+  background:#00000080;
+}
+
+.logo {
+  font-size:22px;
+  font-weight:bold;
+}
+
+.container {
+  padding:15px;
+}
+
+.card {
+  background:white;
+  color:black;
+  padding:15px;
+  border-radius:12px;
+  margin-bottom:15px;
+}
+
+input, button {
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  border-radius:8px;
+  border:none;
+}
+
+button {
+  background:#1e90ff;
+  color:white;
+  font-weight:bold;
+}
+
+.ride {
+  background:#ffffff;
+  color:black;
+  padding:10px;
+  border-radius:10px;
+  margin-top:10px;
+}
+
+.banner {
+  margin:10px 0;
+  padding:10px;
+  background:#ffcc00;
+  color:black;
+  text-align:center;
+  border-radius:10px;
+  font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo">🚀 Ride Share Buddy</div>
+  <small>Earn • Save • Travel</small>
+</header>
+
+<div class="container">
+
+<div class="banner">🔥 Save Petrol • Earn Money • Share Rides</div>
+
+<div class="card">
+  <h3>Create Ride</h3>
+  <input id="from" placeholder="From Location">
+  <input id="to" placeholder="To Location">
+  <input id="km" placeholder="Distance KM">
+  <input id="seats" placeholder="Seats">
+  <button onclick="createRide()">Start Journey</button>
+</div>
+
+<div class="card">
+  <h3>Available Rides</h3>
+  <div id="ridesList"></div>
+</div>
+
+</div>
+
+<script>
+
+let rides = JSON.parse(localStorage.getItem("rides")) || [];
+
+function saveData(){
+  localStorage.setItem("rides", JSON.stringify(rides));
+}
+
+function createRide(){
+  let ride = {
+    id: Date.now(),
+    from: document.getElementById("from").value,
+    to: document.getElementById("to").value,
+    km: document.getElementById("km").value,
+    seats: document.getElementById("seats").value,
+    status: "Started",
+    requests:[]
+  };
+
+  if(ride.km < 5){
+    alert("Minimum 5KM required");
+    return;
+  }
+
+  rides.push(ride);
+  saveData();
+  loadRides();
+}
+
+function loadRides(){
+  let list = document.getElementById("ridesList");
+  list.innerHTML = "";
+
+  rides.forEach(r => {
+    let div = document.createElement("div");
+    div.className = "ride";
+
+    div.innerHTML = `
+      <b>${r.from} → ${r.to}</b><br>
+      KM: ${r.km} | Seats: ${r.seats}<br>
+      Status: ${r.status}<br>
+
+      <input placeholder="Enter Price" id="price${r.id}">
+      <button onclick="requestRide(${r.id})">Request Ride</button>
+
+      <button onclick="startRide(${r.id})">Pickup Done</button>
+      <button onclick="completeRide(${r.id})">Drop Completed</button>
+
+      <div id="req${r.id}"></div>
+    `;
+
+    list.appendChild(div);
+
+    let reqDiv = document.getElementById("req"+r.id);
+    r.requests.forEach(req=>{
+      let p = document.createElement("p");
+      p.innerText = "Request: ₹"+req.price;
+      reqDiv.appendChild(p);
+    });
+  });
+}
+
+function requestRide(id){
+  let price = document.getElementById("price"+id).value;
+
+  let ride = rides.find(r=>r.id==id);
+
+  ride.requests.push({price:price});
+
+  saveData();
+  loadRides();
+}
+
+function startRide(id){
+  let ride = rides.find(r=>r.id==id);
+  ride.status = "Ride Started";
+  saveData();
+  loadRides();
+}
+
+function completeRide(id){
+  let ride = rides.find(r=>r.id==id);
+  ride.status = "Ride Completed";
+  saveData();
+  loadRides();
+}
+
+loadRides();
+
+</script>
+
+</body>
+</html>
