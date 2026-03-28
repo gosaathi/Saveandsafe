@@ -91,15 +91,17 @@ button {
 
 <script type="module">
 
-// 🔥 PASTE YOUR FIREBASE CONFIG HERE
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCLQbR69NBKmyFK_DzIk8Dz_eFc6UWCQdg",
   authDomain: "togosaaythi-n.firebaseapp.com",
-  databaseURL: "togosaaythi-n.firebasestorage.app",
+  databaseURL: "https://togosaaythi-n-default-rtdb.firebaseio.com/",
   projectId: "togosaaythi-n",
+  storageBucket: "togosaaythi-n.firebasestorage.app",
+  messagingSenderId: "1035484636234",
+  appId: "1:1035484636234:web:dd3c092b594f46f9a3f2b3"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -107,15 +109,17 @@ const db = getDatabase(app);
 
 // CREATE RIDE
 window.createRide = function(){
+
   let ride = {
     from: from.value,
     to: to.value,
     via: via.value,
     date: date.value,
     time: time.value,
-    km: km.value,
+    km: parseInt(km.value),
     seats: seats.value,
-    status: "Scheduled"
+    status: "Scheduled",
+    createdAt: Date.now()
   };
 
   if(ride.km < 5){
@@ -125,14 +129,37 @@ window.createRide = function(){
 
   push(ref(db, "rides"), ride);
 };
-
+  
 // LOAD RIDES LIVE
 onValue(ref(db, "rides"), (snapshot) => {
+
   let data = snapshot.val();
   let html = "";
 
+  let now = Date.now();
+
   for(let id in data){
     let r = data[id];
+
+    let rideTime = new Date(r.date + " " + r.time).getTime();
+
+    // ❌ Skip completed rides
+    if(r.status === "Completed") continue;
+
+    // ❌ Expired logic
+    if(r.status === "Scheduled" && now > rideTime){
+      update(ref(db, "rides/"+id), {status:"Expired"});
+      continue;
+    }
+
+    // ❌ Started ride → 15 min తర్వాత expire
+    if(r.status === "Started" && (now - r.createdAt) > 15*60*1000){
+      update(ref(db, "rides/"+id), {status:"Expired"});
+      continue;
+    }
+
+    // ❌ Expired rides hide
+    if(r.status === "Expired") continue;
 
     html += `
     <div class="ride">
