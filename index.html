@@ -86,4 +86,143 @@ button {
 
 </div>
 
-<!-- ✅ ONLY MODULE SCRIPT (NO duplicate firebase scripts
+<!-- ✅ ONLY MODULE SCRIPT (NO duplicate firebase scripts) -->
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+// ✅ YOUR FIREBASE CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSyCLQbR69NBKmyFK_DzIk8Dz_eFc6UWCQdg",
+  authDomain: "togosaaythi-n.firebaseapp.com",
+  databaseURL: "https://togosaaythi-n-default-rtdb.firebaseio.com/",
+  projectId: "togosaaythi-n",
+  storageBucket: "togosaaythi-n.firebasestorage.app",
+  messagingSenderId: "1035484636234",
+  appId: "1:1035484636234:web:dd3c092b594f46f9a3f2b3"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ✅ CREATE RIDE
+window.createRide = function(){
+
+  let ride = {
+    from: document.getElementById("from").value,
+    to: document.getElementById("to").value,
+    via: document.getElementById("via").value,
+    date: document.getElementById("date").value,
+    time: document.getElementById("time").value,
+    km: parseInt(document.getElementById("km").value),
+    seats: document.getElementById("seats").value,
+    status: "Scheduled",
+    createdAt: Date.now()
+  };
+
+  if(!ride.from || !ride.to || !ride.date || !ride.time){
+    alert("Please fill all required fields");
+    return;
+  }
+
+  if(isNaN(ride.km) || ride.km < 5){
+    alert("Minimum 5KM required");
+    return;
+  }
+
+  push(ref(db, "rides"), ride);
+};
+
+// ✅ LOAD RIDES LIVE
+onValue(ref(db, "rides"), (snapshot) => {
+
+  let data = snapshot.val();
+  let html = "";
+
+  if(!data){
+    document.getElementById("rides").innerHTML = "<p>No rides available</p>";
+    return;
+  }
+
+  let now = Date.now();
+
+  for(let id in data){
+    let r = data[id];
+
+    let rideTime = new Date(r.date + "T" + r.time).getTime();
+
+    // ❌ skip completed
+    if(r.status === "Completed") continue;
+
+    // ❌ expire if time passed
+    if(r.status === "Scheduled" && now > rideTime){
+      update(ref(db, "rides/"+id), {status:"Expired"});
+      continue;
+    }
+
+    // ❌ expire after 15 min started
+    if(r.status === "Started" && (now - r.createdAt) > 15*60*1000){
+      update(ref(db, "rides/"+id), {status:"Expired"});
+      continue;
+    }
+
+    if(r.status === "Expired") continue;
+
+    html += `
+    <div class="ride">
+      <b>${r.from} → ${r.to}</b><br>
+      Via: ${r.via || "-"}<br>
+      ${r.date} | ${r.time}<br>
+      KM: ${r.km} | Seats: ${r.seats}<br>
+      Status: ${r.status}<br>
+
+      <input id="price${id}" placeholder="Offer price">
+      <button onclick="requestRide('${id}')">Request</button>
+
+      ${r.status=="Scheduled" ? `<button onclick="startRide('${id}')">Start Ride</button>` : ""}
+
+      ${r.status=="Started" ? `<button onclick="completeRide('${id}')">Complete Ride</button>` : ""}
+    </div>
+    `;
+  }
+
+  document.getElementById("rides").innerHTML = html;
+});
+
+// ✅ REQUEST
+window.requestRide = function(id){
+  let price = document.getElementById("price"+id).value;
+
+  if(!price){
+    alert("Enter price");
+    return;
+  }
+
+  push(ref(db, "requests/"+id), {
+    price: price,
+    time: Date.now()
+  });
+
+  alert("Request sent");
+};
+
+// ✅ START RIDE
+window.startRide = function(id){
+  update(ref(db, "rides/"+id), {
+    status: "Started",
+    startTime: Date.now()
+  });
+};
+
+// ✅ COMPLETE RIDE
+window.completeRide = function(id){
+  update(ref(db, "rides/"+id), {
+    status: "Completed"
+  });
+};
+
+</script>
+
+</body>
+</html>
