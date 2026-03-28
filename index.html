@@ -2,13 +2,16 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ride Share Buddy</title>
+<title>Ride Share Live</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
 
 <style>
 body {
   font-family: Arial;
   margin:0;
-  background: linear-gradient(135deg,#0f2027,#2c5364);
+  background: linear-gradient(135deg,#141e30,#243b55);
   color:white;
 }
 
@@ -16,11 +19,6 @@ header {
   text-align:center;
   padding:15px;
   background:#00000080;
-}
-
-.logo {
-  font-size:22px;
-  font-weight:bold;
 }
 
 .container {
@@ -49,7 +47,7 @@ button {
   margin-top:10px;
   border:none;
   border-radius:8px;
-  background:#007bff;
+  background:#28a745;
   color:white;
   font-weight:bold;
 }
@@ -61,52 +59,55 @@ button {
   border-radius:10px;
   margin-top:10px;
 }
-
-.status {
-  font-weight:bold;
-}
 </style>
 </head>
 
 <body>
 
 <header>
-  <div class="logo">🚀 Ride Share Buddy</div>
-  <small>Schedule • Share • Earn</small>
+  <h2>🚀 Ride Share Live</h2>
 </header>
 
 <div class="container">
 
 <div class="card">
-  <h3>Create Ride</h3>
-  <input id="from" placeholder="From Location">
-  <input id="to" placeholder="To Location">
-  <input id="via" placeholder="Route (via places)">
-  <input id="date" type="date">
-  <input id="time" type="time">
-  <input id="km" placeholder="Distance KM">
-  <input id="seats" placeholder="Seats">
-  <button onclick="createRide()">Create Ride</button>
+<h3>Create Ride</h3>
+<input id="from" placeholder="From">
+<input id="to" placeholder="To">
+<input id="via" placeholder="Via route">
+<input id="date" type="date">
+<input id="time" type="time">
+<input id="km" placeholder="KM">
+<input id="seats" placeholder="Seats">
+<button onclick="createRide()">Create Ride</button>
 </div>
 
 <div class="card">
-  <h3>Available Rides</h3>
-  <div id="ridesList"></div>
+<h3>Live Rides</h3>
+<div id="rides"></div>
 </div>
 
 </div>
 
-<script>
+<script type="module">
 
-let rides = JSON.parse(localStorage.getItem("rides")) || [];
+// 🔥 PASTE YOUR FIREBASE CONFIG HERE
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-function saveData(){
-  localStorage.setItem("rides", JSON.stringify(rides));
-}
+const firebaseConfig = {
+  apiKey: "AIzaSyCLQbR69NBKmyFK_DzIk8Dz_eFc6UWCQdg",
+  authDomain: "https://togosaaythi-n.firebaseapp.com",
+  databaseURL: "https://togosaaythi-n.firebasestorage.app",
+  projectId: "togosaaythi-n", 
+};
 
-function createRide(){
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// CREATE RIDE
+window.createRide = function(){
   let ride = {
-    id: Date.now(),
     from: from.value,
     to: to.value,
     via: via.value,
@@ -114,8 +115,7 @@ function createRide(){
     time: time.value,
     km: km.value,
     seats: seats.value,
-    status: "Scheduled",
-    requests:[]
+    status: "Scheduled"
   };
 
   if(ride.km < 5){
@@ -123,74 +123,60 @@ function createRide(){
     return;
   }
 
-  rides.push(ride);
-  saveData();
-  loadRides();
-}
+  push(ref(db, "rides"), ride);
+};
 
-function loadRides(){
-  let list = document.getElementById("ridesList");
-  list.innerHTML = "";
+// LOAD RIDES LIVE
+onValue(ref(db, "rides"), (snapshot) => {
+  let data = snapshot.val();
+  let html = "";
 
-  rides.forEach(r => {
+  for(let id in data){
+    let r = data[id];
 
-    let div = document.createElement("div");
-    div.className = "ride";
-
-    div.innerHTML = `
+    html += `
+    <div class="ride">
       <b>${r.from} → ${r.to}</b><br>
       Via: ${r.via}<br>
-      Date: ${r.date} | Time: ${r.time}<br>
+      ${r.date} | ${r.time}<br>
       KM: ${r.km} | Seats: ${r.seats}<br>
-      <span class="status">Status: ${r.status}</span><br>
+      Status: ${r.status}<br>
 
-      <input placeholder="Offer Price" id="price${r.id}">
-      <button onclick="requestRide(${r.id})">Request Ride</button>
+      <input id="price${id}" placeholder="Offer price">
+      <button onclick="requestRide('${id}')">Request</button>
 
-      ${r.status=="Scheduled" ? `<button onclick="startRide(${r.id})">Start Ride</button>` : ""}
+      ${r.status=="Scheduled" ? `<button onclick="startRide('${id}')">Start</button>` : ""}
 
-      ${r.status=="Started" ? `<button onclick="completeRide(${r.id})">Complete Ride</button>` : ""}
-
-      <div id="req${r.id}"></div>
+      ${r.status=="Started" ? `<button onclick="completeRide('${id}')">Complete</button>` : ""}
+    </div>
     `;
+  }
 
-    list.appendChild(div);
+  rides.innerHTML = html;
+});
 
-    let reqDiv = document.getElementById("req"+r.id);
-    r.requests.forEach(req=>{
-      let p = document.createElement("p");
-      p.innerText = "Request: ₹"+req.price;
-      reqDiv.appendChild(p);
-    });
-
-  });
-}
-
-function requestRide(id){
+// REQUEST
+window.requestRide = function(id){
   let price = document.getElementById("price"+id).value;
 
-  let ride = rides.find(r=>r.id==id);
-  ride.requests.push({price:price});
+  push(ref(db, "requests/"+id), {
+    price: price
+  });
+};
 
-  saveData();
-  loadRides();
-}
+// START
+window.startRide = function(id){
+  update(ref(db, "rides/"+id), {
+    status: "Started"
+  });
+};
 
-function startRide(id){
-  let ride = rides.find(r=>r.id==id);
-  ride.status = "Started";
-  saveData();
-  loadRides();
-}
-
-function completeRide(id){
-  let ride = rides.find(r=>r.id==id);
-  ride.status = "Completed";
-  saveData();
-  loadRides();
-}
-
-loadRides();
+// COMPLETE
+window.completeRide = function(id){
+  update(ref(db, "rides/"+id), {
+    status: "Completed"
+  });
+};
 
 </script>
 
