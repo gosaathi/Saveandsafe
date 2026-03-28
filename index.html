@@ -1,36 +1,61 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ride Share Live</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ride Buddy Pro</title>
 
 <style>
 body {
-  font-family: Arial;
   margin:0;
-  background: linear-gradient(135deg,#141e30,#243b55);
+  font-family: Arial;
+  background:#f5f5f5;
+}
+
+/* HEADER */
+.header {
+  background:url('https://images.unsplash.com/photo-1503376780353-7e6692767b70') center/cover;
   color:white;
-}
-
-header {
+  padding:25px;
   text-align:center;
-  padding:15px;
-  background:#00000080;
 }
 
+.header h1 {
+  margin:0;
+}
+
+/* NAV */
+.nav {
+  display:flex;
+  justify-content:space-around;
+  background:#007bff;
+  color:white;
+  padding:10px;
+}
+
+.nav button {
+  background:none;
+  border:none;
+  color:white;
+  font-weight:bold;
+}
+
+/* CONTAINER */
 .container {
   padding:15px;
 }
 
+/* CARD */
 .card {
   background:white;
-  color:black;
   padding:15px;
   border-radius:12px;
   margin-bottom:15px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.1);
 }
 
-input {
+/* INPUT */
+input, select, button {
   width:100%;
   padding:10px;
   margin-top:8px;
@@ -39,188 +64,224 @@ input {
 }
 
 button {
-  width:100%;
-  padding:10px;
-  margin-top:10px;
-  border:none;
-  border-radius:8px;
-  background:#28a745;
+  background:#007bff;
   color:white;
-  font-weight:bold;
+  border:none;
 }
 
+/* RIDE CARD */
 .ride {
-  background:#fff;
-  color:black;
+  background:white;
+  border-radius:12px;
+  margin-top:15px;
+  overflow:hidden;
+  box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+.ride img {
+  width:100%;
+  height:140px;
+  object-fit:cover;
+}
+
+.ride-content {
+  padding:10px;
+}
+
+.chat-box {
+  background:#eee;
   padding:10px;
   border-radius:10px;
   margin-top:10px;
 }
+
 </style>
 </head>
 
 <body>
 
-<header>
-  <h2>🚀 Ride Share Live</h2>
-</header>
+<div class="header">
+  <h1>🚀 Ride Buddy</h1>
+  <p>Find Travel Partner • Earn • Save</p>
+</div>
+
+<div class="nav">
+  <button onclick="showPage('home')">Home</button>
+  <button onclick="showPage('create')">Create Ride</button>
+  <button onclick="showPage('profile')">Profile</button>
+</div>
 
 <div class="container">
 
-<div class="card">
-<h3>Create Ride</h3>
-<input id="from" placeholder="From">
-<input id="to" placeholder="To">
-<input id="via" placeholder="Via route">
-<input id="date" type="date">
-<input id="time" type="time">
-<input id="km" placeholder="KM">
-<input id="seats" placeholder="Seats">
-<button onclick="createRide()">Create Ride</button>
-</div>
+<!-- HOME -->
+<div id="home">
 
 <div class="card">
-<h3>Live Rides</h3>
-<div id="rides">Loading...</div>
+  <h3>Available Rides</h3>
+  <div id="rides"></div>
 </div>
 
 </div>
 
-<!-- ✅ ONLY MODULE SCRIPT (NO duplicate firebase scripts) -->
-<script type="module">
+<!-- CREATE -->
+<div id="create" style="display:none">
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+<div class="card">
+  <h3>Create Ride</h3>
 
-// ✅ YOUR FIREBASE CONFIG
-const firebaseConfig = {
-  apiKey: "AIzaSyCLQbR69NBKmyFK_DzIk8Dz_eFc6UWCQdg",
-  authDomain: "togosaaythi-n.firebaseapp.com",
-  databaseURL: "https://togosaaythi-n-default-rtdb.firebaseio.com/",
-  projectId: "togosaaythi-n",
-  storageBucket: "togosaaythi-n.firebasestorage.app",
-  messagingSenderId: "1035484636234",
-  appId: "1:1035484636234:web:dd3c092b594f46f9a3f2b3"
-};
+  <input id="from" placeholder="From">
+  <input id="to" placeholder="To">
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+  <select id="type">
+    <option value="Free">Free Ride</option>
+    <option value="Paid">Paid Ride</option>
+  </select>
 
-// ✅ CREATE RIDE
-window.createRide = function(){
+  <input id="seats" placeholder="Seats">
 
+  <button onclick="createRide()">Start Journey</button>
+</div>
+
+</div>
+
+<!-- PROFILE -->
+<div id="profile" style="display:none">
+
+<div class="card">
+  <h3>User Profile</h3>
+  <input id="name" placeholder="Your Name">
+  <input id="phone" placeholder="Phone">
+  <button onclick="saveProfile()">Save</button>
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+let rides = JSON.parse(localStorage.getItem("rides")) || [];
+let user = JSON.parse(localStorage.getItem("user")) || {};
+
+function save(){
+  localStorage.setItem("rides", JSON.stringify(rides));
+}
+
+function saveProfile(){
+  user.name = document.getElementById("name").value;
+  user.phone = document.getElementById("phone").value;
+  localStorage.setItem("user", JSON.stringify(user));
+  alert("Profile Saved");
+}
+
+function showPage(p){
+  document.getElementById("home").style.display="none";
+  document.getElementById("create").style.display="none";
+  document.getElementById("profile").style.display="none";
+  document.getElementById(p).style.display="block";
+}
+
+function createRide(){
   let ride = {
+    id: Date.now(),
     from: document.getElementById("from").value,
     to: document.getElementById("to").value,
-    via: document.getElementById("via").value,
-    date: document.getElementById("date").value,
-    time: document.getElementById("time").value,
-    km: parseInt(document.getElementById("km").value),
+    type: document.getElementById("type").value,
     seats: document.getElementById("seats").value,
-    status: "Scheduled",
-    createdAt: Date.now()
+    status: "Waiting",
+    requests: [],
+    chat:[]
   };
 
-  if(!ride.from || !ride.to || !ride.date || !ride.time){
-    alert("Please fill all required fields");
-    return;
-  }
+  rides.push(ride);
+  save();
+  loadRides();
+  showPage('home');
+}
 
-  if(isNaN(ride.km) || ride.km < 5){
-    alert("Minimum 5KM required");
-    return;
-  }
+function loadRides(){
+  let div = document.getElementById("rides");
+  div.innerHTML="";
 
-  push(ref(db, "rides"), ride);
-};
+  rides.forEach(r=>{
 
-// ✅ LOAD RIDES LIVE
-onValue(ref(db, "rides"), (snapshot) => {
-
-  let data = snapshot.val();
-  let html = "";
-
-  if(!data){
-    document.getElementById("rides").innerHTML = "<p>No rides available</p>";
-    return;
-  }
-
-  let now = Date.now();
-
-  for(let id in data){
-    let r = data[id];
-
-    let rideTime = new Date(r.date + "T" + r.time).getTime();
-
-    // ❌ skip completed
-    if(r.status === "Completed") continue;
-
-    // ❌ expire if time passed
-    if(r.status === "Scheduled" && now > rideTime){
-      update(ref(db, "rides/"+id), {status:"Expired"});
-      continue;
-    }
-
-    // ❌ expire after 15 min started
-    if(r.status === "Started" && (now - r.createdAt) > 15*60*1000){
-      update(ref(db, "rides/"+id), {status:"Expired"});
-      continue;
-    }
-
-    if(r.status === "Expired") continue;
-
-    html += `
+    let html = `
     <div class="ride">
-      <b>${r.from} → ${r.to}</b><br>
-      Via: ${r.via || "-"}<br>
-      ${r.date} | ${r.time}<br>
-      KM: ${r.km} | Seats: ${r.seats}<br>
-      Status: ${r.status}<br>
+      <img src="https://images.unsplash.com/photo-1519003722824-194d4455a60c">
+      <div class="ride-content">
+        <b>${r.from} → ${r.to}</b><br>
+        Type: ${r.type}<br>
+        Seats: ${r.seats}<br>
+        Status: ${r.status}<br>
 
-      <input id="price${id}" placeholder="Offer price">
-      <button onclick="requestRide('${id}')">Request</button>
+        ${r.type==="Paid" ? `<input id="price${r.id}" placeholder="Offer Price">` : ``}
 
-      ${r.status=="Scheduled" ? `<button onclick="startRide('${id}')">Start Ride</button>` : ""}
+        <button onclick="requestRide(${r.id})">Request</button>
+        <button onclick="startRide(${r.id})">Start</button>
+        <button onclick="completeRide(${r.id})">Complete</button>
 
-      ${r.status=="Started" ? `<button onclick="completeRide('${id}')">Complete Ride</button>` : ""}
+        <div class="chat-box">
+          <input id="msg${r.id}" placeholder="Message">
+          <button onclick="sendMsg(${r.id})">Send</button>
+          <div id="chat${r.id}"></div>
+        </div>
+
+        <div id="req${r.id}"></div>
+      </div>
     </div>
     `;
-  }
 
-  document.getElementById("rides").innerHTML = html;
-});
+    div.innerHTML += html;
 
-// ✅ REQUEST
-window.requestRide = function(id){
-  let price = document.getElementById("price"+id).value;
+    let reqDiv = document.getElementById("req"+r.id);
+    r.requests.forEach(req=>{
+      let p = document.createElement("p");
+      p.innerText = "Request: " + (req.price ? "₹"+req.price : "Free Join");
+      reqDiv.appendChild(p);
+    });
 
-  if(!price){
-    alert("Enter price");
-    return;
-  }
+    let chatDiv = document.getElementById("chat"+r.id);
+    r.chat.forEach(c=>{
+      let p = document.createElement("p");
+      p.innerText = c;
+      chatDiv.appendChild(p);
+    });
 
-  push(ref(db, "requests/"+id), {
-    price: price,
-    time: Date.now()
   });
+}
 
-  alert("Request sent");
-};
+function requestRide(id){
+  let ride = rides.find(r=>r.id==id);
+  let priceInput = document.getElementById("price"+id);
+  let price = priceInput ? priceInput.value : "Free";
+  ride.requests.push({price:price});
+  save();
+  loadRides();
+}
 
-// ✅ START RIDE
-window.startRide = function(id){
-  update(ref(db, "rides/"+id), {
-    status: "Started",
-    startTime: Date.now()
-  });
-};
+function startRide(id){
+  let ride = rides.find(r=>r.id==id);
+  ride.status="Started";
+  save();
+  loadRides();
+}
 
-// ✅ COMPLETE RIDE
-window.completeRide = function(id){
-  update(ref(db, "rides/"+id), {
-    status: "Completed"
-  });
-};
+function completeRide(id){
+  let ride = rides.find(r=>r.id==id);
+  ride.status="Completed";
+  save();
+  loadRides();
+}
+
+function sendMsg(id){
+  let msg = document.getElementById("msg"+id).value;
+  let ride = rides.find(r=>r.id==id);
+  ride.chat.push(msg);
+  save();
+  loadRides();
+}
+
+loadRides();
 
 </script>
 
