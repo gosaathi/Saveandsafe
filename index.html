@@ -4,9 +4,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ride Share Live</title>
 
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
-
 <style>
 body {
   font-family: Arial;
@@ -84,128 +81,9 @@ button {
 
 <div class="card">
 <h3>Live Rides</h3>
-<div id="rides"></div>
+<div id="rides">Loading...</div>
 </div>
 
 </div>
 
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCLQbR69NBKmyFK_DzIk8Dz_eFc6UWCQdg",
-  authDomain: "togosaaythi-n.firebaseapp.com",
-  databaseURL: "https://togosaaythi-n-default-rtdb.firebaseio.com/",
-  projectId: "togosaaythi-n",
-  storageBucket: "togosaaythi-n.firebasestorage.app",
-  messagingSenderId: "1035484636234",
-  appId: "1:1035484636234:web:dd3c092b594f46f9a3f2b3"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-// CREATE RIDE
-window.createRide = function(){
-
-  let ride = {
-    from: from.value,
-    to: to.value,
-    via: via.value,
-    date: date.value,
-    time: time.value,
-    km: parseInt(km.value),
-    seats: seats.value,
-    status: "Scheduled",
-    createdAt: Date.now()
-  };
-
-  if(ride.km < 5){
-    alert("Minimum 5KM required");
-    return;
-  }
-
-  push(ref(db, "rides"), ride);
-};
-  
-// LOAD RIDES LIVE
-onValue(ref(db, "rides"), (snapshot) => {
-
-  let data = snapshot.val();
-  let html = "";
-
-  let now = Date.now();
-
-  for(let id in data){
-    let r = data[id];
-
-    let rideTime = new Date(r.date + " " + r.time).getTime();
-
-    // ❌ Skip completed rides
-    if(r.status === "Completed") continue;
-
-    // ❌ Expired logic
-    if(r.status === "Scheduled" && now > rideTime){
-      update(ref(db, "rides/"+id), {status:"Expired"});
-      continue;
-    }
-
-    // ❌ Started ride → 15 min తర్వాత expire
-    if(r.status === "Started" && (now - r.createdAt) > 15*60*1000){
-      update(ref(db, "rides/"+id), {status:"Expired"});
-      continue;
-    }
-
-    // ❌ Expired rides hide
-    if(r.status === "Expired") continue;
-
-    html += `
-    <div class="ride">
-      <b>${r.from} → ${r.to}</b><br>
-      Via: ${r.via}<br>
-      ${r.date} | ${r.time}<br>
-      KM: ${r.km} | Seats: ${r.seats}<br>
-      Status: ${r.status}<br>
-
-      <input id="price${id}" placeholder="Offer price">
-      <button onclick="requestRide('${id}')">Request</button>
-
-      ${r.status=="Scheduled" ? `<button onclick="startRide('${id}')">Start</button>` : ""}
-
-      ${r.status=="Started" ? `<button onclick="completeRide('${id}')">Complete</button>` : ""}
-    </div>
-    `;
-  }
-
-  rides.innerHTML = html;
-});
-
-// REQUEST
-window.requestRide = function(id){
-  let price = document.getElementById("price"+id).value;
-
-  push(ref(db, "requests/"+id), {
-    price: price
-  });
-};
-
-// START
-window.startRide = function(id){
-  update(ref(db, "rides/"+id), {
-    status: "Started"
-  });
-};
-
-// COMPLETE
-window.completeRide = function(id){
-  update(ref(db, "rides/"+id), {
-    status: "Completed"
-  });
-};
-
-</script>
-
-</body>
-</html>
+<!-- ✅ ONLY MODULE SCRIPT (NO duplicate firebase scripts
