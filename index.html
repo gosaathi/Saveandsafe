@@ -1,15 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ride Share App</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ride Share Buddy</title>
 
 <style>
 body {
-  margin:0;
   font-family: Arial;
-  background: linear-gradient(135deg,#1e3c72,#2a5298);
+  margin:0;
+  background: linear-gradient(135deg,#0f2027,#2c5364);
   color:white;
 }
 
@@ -36,35 +35,34 @@ header {
   margin-bottom:15px;
 }
 
-input, button {
+input {
   width:100%;
   padding:10px;
   margin-top:8px;
   border-radius:8px;
-  border:none;
+  border:1px solid #ccc;
 }
 
 button {
-  background:#1e90ff;
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  border:none;
+  border-radius:8px;
+  background:#007bff;
   color:white;
   font-weight:bold;
 }
 
 .ride {
-  background:#ffffff;
+  background:#fff;
   color:black;
   padding:10px;
   border-radius:10px;
   margin-top:10px;
 }
 
-.banner {
-  margin:10px 0;
-  padding:10px;
-  background:#ffcc00;
-  color:black;
-  text-align:center;
-  border-radius:10px;
+.status {
   font-weight:bold;
 }
 </style>
@@ -74,20 +72,21 @@ button {
 
 <header>
   <div class="logo">🚀 Ride Share Buddy</div>
-  <small>Earn • Save • Travel</small>
+  <small>Schedule • Share • Earn</small>
 </header>
 
 <div class="container">
-
-<div class="banner">🔥 Save Petrol • Earn Money • Share Rides</div>
 
 <div class="card">
   <h3>Create Ride</h3>
   <input id="from" placeholder="From Location">
   <input id="to" placeholder="To Location">
+  <input id="via" placeholder="Route (via places)">
+  <input id="date" type="date">
+  <input id="time" type="time">
   <input id="km" placeholder="Distance KM">
   <input id="seats" placeholder="Seats">
-  <button onclick="createRide()">Start Journey</button>
+  <button onclick="createRide()">Create Ride</button>
 </div>
 
 <div class="card">
@@ -108,11 +107,14 @@ function saveData(){
 function createRide(){
   let ride = {
     id: Date.now(),
-    from: document.getElementById("from").value,
-    to: document.getElementById("to").value,
-    km: document.getElementById("km").value,
-    seats: document.getElementById("seats").value,
-    status: "Started",
+    from: from.value,
+    to: to.value,
+    via: via.value,
+    date: date.value,
+    time: time.value,
+    km: km.value,
+    seats: seats.value,
+    status: "Scheduled",
     requests:[]
   };
 
@@ -131,19 +133,23 @@ function loadRides(){
   list.innerHTML = "";
 
   rides.forEach(r => {
+
     let div = document.createElement("div");
     div.className = "ride";
 
     div.innerHTML = `
       <b>${r.from} → ${r.to}</b><br>
+      Via: ${r.via}<br>
+      Date: ${r.date} | Time: ${r.time}<br>
       KM: ${r.km} | Seats: ${r.seats}<br>
-      Status: ${r.status}<br>
+      <span class="status">Status: ${r.status}</span><br>
 
-      <input placeholder="Enter Price" id="price${r.id}">
+      <input placeholder="Offer Price" id="price${r.id}">
       <button onclick="requestRide(${r.id})">Request Ride</button>
 
-      <button onclick="startRide(${r.id})">Pickup Done</button>
-      <button onclick="completeRide(${r.id})">Drop Completed</button>
+      ${r.status=="Scheduled" ? `<button onclick="startRide(${r.id})">Start Ride</button>` : ""}
+
+      ${r.status=="Started" ? `<button onclick="completeRide(${r.id})">Complete Ride</button>` : ""}
 
       <div id="req${r.id}"></div>
     `;
@@ -156,6 +162,7 @@ function loadRides(){
       p.innerText = "Request: ₹"+req.price;
       reqDiv.appendChild(p);
     });
+
   });
 }
 
@@ -163,7 +170,6 @@ function requestRide(id){
   let price = document.getElementById("price"+id).value;
 
   let ride = rides.find(r=>r.id==id);
-
   ride.requests.push({price:price});
 
   saveData();
@@ -172,14 +178,14 @@ function requestRide(id){
 
 function startRide(id){
   let ride = rides.find(r=>r.id==id);
-  ride.status = "Ride Started";
+  ride.status = "Started";
   saveData();
   loadRides();
 }
 
 function completeRide(id){
   let ride = rides.find(r=>r.id==id);
-  ride.status = "Ride Completed";
+  ride.status = "Completed";
   saveData();
   loadRides();
 }
