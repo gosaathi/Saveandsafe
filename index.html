@@ -4,26 +4,24 @@
 <title>RideBuddy Real</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
-
 <style>
 body{font-family:Arial;background:#f2f2f2}
 .card{background:white;padding:10px;margin:10px;border-radius:10px}
-button{padding:10px;width:100%}
+button{padding:10px;width:100%;margin-top:5px}
+input,select{width:100%;padding:8px;margin-top:5px}
 </style>
 </head>
 
 <body>
 
 <div class="card">
-<h3>Login (OTP)</h3>
-<input id="phone" placeholder="+91xxxxxxxxxx">
-<button onclick="sendOTP()">Send OTP</button>
+<h3>Your Wallet</h3>
+<p id="userId"></p>
+<p>Coins: <span id="coins">0</span></p>
 
-<input id="otp" placeholder="Enter OTP">
-<button onclick="verifyOTP()">Verify</button>
+<input id="sendTo" placeholder="Receiver User ID">
+<input id="amount" placeholder="Amount">
+<button onclick="sendCoins()">Send Coins</button>
 </div>
 
 <div class="card">
@@ -32,11 +30,12 @@ button{padding:10px;width:100%}
 <input id="to" placeholder="To">
 
 <select id="type">
-<option>Free</option>
-<option>Paid</option>
+<option value="Free">Free</option>
+<option value="Paid">Paid</option>
 </select>
 
-<button onclick="createRide()">Create</button>
+<input id="rideCoins" placeholder="Coins (for Paid Ride)">
+<button onclick="createRide()">Create Ride</button>
 </div>
 
 <div class="card">
@@ -44,75 +43,160 @@ button{padding:10px;width:100%}
 <div id="rides"></div>
 </div>
 
-<script>
+<script type="module">
 
-// 🔥 YOUR FIREBASE CONFIG
+// ✅ Firebase v10 Correct Import
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// 🔥 YOUR CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyCLQbR69NBKmyFK_DzIk8Dz_eFc6UWCQdg",
   authDomain: "togosaaythi-n.firebaseapp.com",
   projectId: "togosaaythi-n"
 };
 
-firebase.initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-const auth = firebase.auth();
-const db = firebase.firestore();
+// ✅ SIMPLE USER SYSTEM
+let userId = localStorage.getItem("userId");
 
-let confirmationResult;
-
-// OTP SEND
-function sendOTP(){
-  let phone = document.getElementById("phone").value;
-
-  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('phone');
-
-  auth.signInWithPhoneNumber(phone, window.recaptchaVerifier)
-  .then(result=>{
-    confirmationResult = result;
-    alert("OTP Sent");
-  });
+if(!userId){
+  userId = "user_" + Math.floor(Math.random()*100000);
+  localStorage.setItem("userId", userId);
 }
 
-// OTP VERIFY
-function verifyOTP(){
-  let otp = document.getElementById("otp").value;
+document.getElementById("userId").innerText = "User ID: " + userId;
 
-  confirmationResult.confirm(otp)
-  .then(()=>{
-    alert("Login Success");
-    loadRides();
-  });
+// ✅ CREATE WALLET IF NOT EXISTS
+async function initWallet(){
+  const ref = doc(db, "users", userId);
+  const snap = await getDoc(ref);
+
+  if(!snap.exists()){
+    await setDoc(ref, {coins: 100}); // starting coins
+  }
+
+  loadCoins();
 }
 
-// CREATE RIDE
-function createRide(){
-  db.collection("Rides").add({
+async function loadCoins(){
+  const ref = doc(db, "users", userId);
+  const snap = await getDoc(ref);
+  document.getElementById("coins").innerText = snap.data().coins;
+}
+
+// 💸 SEND COINS
+async function sendCoins(){
+  let to = document.getElementById("sendTo").value;
+  let amount = parseInt(document.getElementById("amount").value);
+
+  if(!to || !amount) return alert("Fill all");
+
+  const senderRef = doc(db, "users", userId);
+  const receiverRef = doc(db, "users", to);
+
+  const senderSnap = await getDoc(senderRef);
+  const receiverSnap = await getDoc(receiverRef);
+
+  if(!receiverSnap.exists()){
+    alert("Receiver not found");
+    return;
+  }
+
+  let senderCoins = senderSnap.data().coins;
+
+  if(senderCoins < amount){
+    alert("Not enough coins");
+    return;
+  }
+
+  await updateDoc(senderRef, {coins: senderCoins - amount});
+  await updateDoc(receiverRef, {
+    coins: receiverSnap.data().coins + amount
+  });
+
+  alert("Coins Sent");
+  loadCoins();
+}
+
+// 🚗 CREATE RIDE
+async function createRide(){
+  let type = document.getElementById("type").value;
+  let coins = parseInt(document.getElementById("rideCoins").value) || 0;
+
+  await addDoc(collection(db, "Rides"), {
     from:document.getElementById("from").value,
     to:document.getElementById("to").value,
-    type:document.getElementById("type").value,
+    type:type,
+    coins:type==="Paid"?coins:0,
+    createdBy:userId,
     status:"Waiting"
   });
 }
 
-// LOAD RIDES
+// 📦 LOAD RIDES
 function loadRides(){
-  db.collection("Rides").onSnapshot(snapshot=>{
+  onSnapshot(collection(db, "Rides"), snapshot=>{
     let div = document.getElementById("rides");
     div.innerHTML="";
 
-    snapshot.forEach(doc=>{
-      let r = doc.data();
+    snapshot.forEach(docSnap=>{
+      let r = docSnap.data();
 
       div.innerHTML += `
         <div class="card">
           ${r.from} → ${r.to}<br>
-          ${r.type}<br>
-          ${r.status}
+          Type: ${r.type}<br>
+          Coins: ${r.coins}<br>
+          Status: ${r.status}<br>
+
+          ${
+            r.type==="Paid" && r.createdBy!==userId
+            ? `<button onclick="acceptRide('${docSnap.id}', ${r.coins}, '${r.createdBy}')">Accept Ride</button>`
+            : ""
+          }
         </div>
       `;
     });
   });
 }
+
+// 🎯 ACCEPT RIDE (TRANSFER COINS)
+window.acceptRide = async function(id, coins, owner){
+
+  const myRef = doc(db, "users", userId);
+  const ownerRef = doc(db, "users", owner);
+
+  const mySnap = await getDoc(myRef);
+
+  if(mySnap.data().coins < coins){
+    alert("Not enough coins");
+    return;
+  }
+
+  await updateDoc(myRef, {
+    coins: mySnap.data().coins - coins
+  });
+
+  const ownerSnap = await getDoc(ownerRef);
+
+  await updateDoc(ownerRef, {
+    coins: ownerSnap.data().coins + coins
+  });
+
+  await updateDoc(doc(db, "Rides", id), {
+    status:"Completed"
+  });
+
+  alert("Ride Accepted & Paid");
+  loadCoins();
+}
+
+// INIT
+initWallet();
+loadRides();
 
 </script>
 
