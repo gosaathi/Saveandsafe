@@ -4,7 +4,7 @@
 <title>GoSaathi</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- ✅ Firebase COMPAT VERSION (IMPORTANT FIX) -->
+<!-- ✅ Correct Firebase (compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -42,6 +42,7 @@ input,select{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:1px
 
 <div id="create" class="page">
   <h3>Create Ride</h3>
+
   <input id="from" placeholder="From">
   <input id="to" placeholder="To">
   <input id="via" placeholder="Via (optional)">
@@ -64,8 +65,7 @@ input,select{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:1px
   <p id="coins"></p>
 
   <h4>Scan & Pay</h4>
-  <!-- ✅ మీ QR image link ఇక్కడ పెట్టండి -->
-  <img src="YOUR_QR_IMAGE_URL" style="width:100%;border-radius:10px">
+  <img src="qr.png" style="width:100%;border-radius:10px">
 
   <button onclick="requestCoins()">I Paid ₹10</button>
 </div>
@@ -100,27 +100,28 @@ const db = firebase.firestore();
 
 let user;
 
-// ✅ LOGIN (FIXED)
+// ✅ LOGIN
 function login(){
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithRedirect(provider);
 }
 
-// ✅ HANDLE REDIRECT RESULT (IMPORTANT)
-auth.getRedirectResult().then(result=>{
-  if(result.user){
-    user = result.user;
-
-    db.collection("Users").doc(user.uid).set({
-      name: user.displayName,
-      email: user.email,
-      coins: 100
-    }, {merge:true});
+// ✅ RELIABLE LOGIN DETECTION
+auth.onAuthStateChanged(u=>{
+  if(u){
+    user = u;
 
     document.getElementById("login").style.display="none";
     document.getElementById("app").style.display="block";
 
     document.getElementById("user").innerText = user.displayName;
+
+    // save user
+    db.collection("Users").doc(user.uid).set({
+      name: user.displayName,
+      email: user.email,
+      coins: 100
+    }, {merge:true});
 
     loadCoins();
     loadRides();
@@ -133,54 +134,51 @@ function show(p){
   document.getElementById(p).classList.add('active');
 }
 
-// COINS
+// LOAD COINS
 function loadCoins(){
   db.collection("Users").doc(user.uid)
   .onSnapshot(doc=>{
     if(doc.exists){
-      document.getElementById("coins").innerText="Coins: "+doc.data().coins;
+      document.getElementById("coins").innerText =
+        "Coins: " + doc.data().coins;
     }
   });
 }
 
-// CREATE RIDE
+// CREATE RIDE (FIXED)
 function createRide(){
   db.collection("Rides").add({
-    from:from.value,
-    to:to.value,
-    via:via.value,
-    type:type.value,
-    gender:gender.value,
-    userId:user.uid
+    from: document.getElementById("from").value,
+    to: document.getElementById("to").value,
+    via: document.getElementById("via").value,
+    type: document.getElementById("type").value,
+    gender: document.getElementById("gender").value,
+    userId: user.uid,
+    createdAt: Date.now()
   });
 }
 
-// LOAD RIDES
+// LOAD RIDES (STABLE)
 function loadRides(){
-  db.collection("Rides").onSnapshot(snap=>{
-    let div=document.getElementById("rides");
-    div.innerHTML="";
+  db.collection("Rides")
+  .orderBy("createdAt","desc")
+  .onSnapshot(snap=>{
+    let div = document.getElementById("rides");
+    div.innerHTML = "";
 
     snap.forEach(doc=>{
-      let r=doc.data();
+      let r = doc.data();
 
-      div.innerHTML+=`
+      div.innerHTML += `
       <div class="card">
         <b>${r.from} → ${r.to}</b><br>
         Via: ${r.via || "-"}<br>
         Type: ${r.type}<br>
         ${r.gender=="Women"?"👩 Women Only":""}
-
-        <button onclick="joinRide('${doc.id}')">Join</button>
       </div>
       `;
     });
   });
-}
-
-// JOIN
-function joinRide(id){
-  alert("Request Sent");
 }
 
 // PAYMENT REQUEST
@@ -191,7 +189,7 @@ function requestCoins(){
     status:"pending"
   });
 
-  alert("Request sent. Admin will add coins.");
+  alert("Request sent");
 }
 
 </script>
