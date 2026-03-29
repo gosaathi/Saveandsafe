@@ -164,7 +164,7 @@ const db = firebase.firestore();
 let user;
 
 // LOGIN
-// function login(){
+function login(){
     
 const provider = new firebase.auth.GoogleAuthProvider();
 
@@ -193,7 +193,7 @@ firebase.auth().getRedirectResult().then(result=>{
     loadRides();
   }
 });
-    
+}    
 
 // NAVIGATION
 function show(p){
