@@ -164,27 +164,36 @@ const db = firebase.firestore();
 let user;
 
 // LOGIN
-function login(){
-  let provider = new firebase.auth.GoogleAuthProvider();
+// function login(){
+    
+const provider = new firebase.auth.GoogleAuthProvider();
 
-  auth.signInWithPopup(provider).then(res=>{
-    user = res.user;
+function login(){
+  firebase.auth().signInWithRedirect(provider);
+}
+
+// Redirect result handle
+firebase.auth().getRedirectResult().then(result=>{
+  if(result.user){
+
+    let user = result.user;
 
     db.collection("Users").doc(user.uid).set({
-      name:user.displayName,
-      email:user.email,
-      coins:100
-    },{merge:true});
+      name: user.displayName,
+      email: user.email,
+      coins: 100
+    }, {merge:true});
 
     document.getElementById("login").style.display="none";
     document.getElementById("app").style.display="block";
 
-    document.getElementById("user").innerText=user.displayName;
+    document.getElementById("user").innerText = user.displayName;
 
     loadCoins();
     loadRides();
-  });
-}
+  }
+});
+    
 
 // NAVIGATION
 function show(p){
