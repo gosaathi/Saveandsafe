@@ -1,202 +1,218 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>RideBuddy Real</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ride Share Live</title>
 
 <style>
-body{font-family:Arial;background:#f2f2f2}
-.card{background:white;padding:10px;margin:10px;border-radius:10px}
-button{padding:10px;width:100%;margin-top:5px}
-input,select{width:100%;padding:8px;margin-top:5px}
+body {font-family: Arial;margin:0;background: linear-gradient(135deg,#141e30,#243b55);color:white;}
+header {text-align:center;padding:15px;background:#00000080;}
+.container {padding:15px;}
+.card {background:white;color:black;padding:15px;border-radius:12px;margin-bottom:15px;}
+input {width:100%;padding:10px;margin-top:8px;border-radius:8px;border:1px solid #ccc;}
+button {width:100%;padding:10px;margin-top:10px;border:none;border-radius:8px;background:#28a745;color:white;font-weight:bold;}
+.ride {background:#fff;color:black;padding:10px;border-radius:10px;margin-top:10px;}
 </style>
 </head>
 
 <body>
 
+<header>
+  <h2>🚀 Ride Share Live</h2>
+</header>
+
+<div class="container">
+
+<!-- WALLET -->
 <div class="card">
-<h3>Your Wallet</h3>
+<h3>💰 Wallet</h3>
 <p id="userId"></p>
 <p>Coins: <span id="coins">0</span></p>
 
-<input id="sendTo" placeholder="Receiver User ID">
+<input id="sendTo" placeholder="Send to User ID">
 <input id="amount" placeholder="Amount">
 <button onclick="sendCoins()">Send Coins</button>
 </div>
 
+<!-- UPI RECHARGE -->
+<div class="card">
+<h3>💳 Add Coins (Manual)</h3>
+<p>Send money to UPI: <b>mratnamnalli@ybl</b></p>
+<p>₹1 = 10 Coins</p>
+
+<input id="rechargeAmount" placeholder="Enter Amount (min ₹10)">
+<input id="screenshot" placeholder="Paste Screenshot Link">
+<button onclick="submitRecharge()">Submit Request</button>
+</div>
+
+<!-- CREATE RIDE -->
 <div class="card">
 <h3>Create Ride</h3>
 <input id="from" placeholder="From">
 <input id="to" placeholder="To">
+<input id="via" placeholder="Via route">
+<input id="date" type="date">
+<input id="time" type="time">
+<input id="km" placeholder="KM">
+<input id="seats" placeholder="Seats">
 
 <select id="type">
 <option value="Free">Free</option>
 <option value="Paid">Paid</option>
 </select>
 
-<input id="rideCoins" placeholder="Coins (for Paid Ride)">
+<input id="coins" placeholder="Coins (for Paid ride)">
+
 <button onclick="createRide()">Create Ride</button>
 </div>
 
+<!-- RIDES -->
 <div class="card">
-<h3>Rides</h3>
-<div id="rides"></div>
+<h3>Live Rides</h3>
+<div id="rides">Loading...</div>
+</div>
+
 </div>
 
 <script type="module">
 
-// ✅ Firebase v10 Correct Import
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getDatabase, ref, push, onValue, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// 🔥 YOUR CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyCLQbR69NBKmyFK_DzIk8Dz_eFc6UWCQdg",
   authDomain: "togosaaythi-n.firebaseapp.com",
+  databaseURL: "https://togosaaythi-n-default-rtdb.firebaseio.com/",
   projectId: "togosaaythi-n"
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db = getDatabase(app);
 
-// ✅ SIMPLE USER SYSTEM
+// 👤 USER SYSTEM
 let userId = localStorage.getItem("userId");
-
 if(!userId){
   userId = "user_" + Math.floor(Math.random()*100000);
   localStorage.setItem("userId", userId);
+
+  // give free 100 coins
+  update(ref(db,"users/"+userId), {coins:100});
 }
+document.getElementById("userId").innerText = "User: " + userId;
 
-document.getElementById("userId").innerText = "User ID: " + userId;
-
-// ✅ CREATE WALLET IF NOT EXISTS
-async function initWallet(){
-  const ref = doc(db, "users", userId);
-  const snap = await getDoc(ref);
-
-  if(!snap.exists()){
-    await setDoc(ref, {coins: 100}); // starting coins
-  }
-
-  loadCoins();
+// 💰 LOAD COINS
+function loadCoins(){
+  onValue(ref(db,"users/"+userId), snap=>{
+    let data = snap.val();
+    document.getElementById("coins").innerText = data?.coins || 0;
+  });
 }
-
-async function loadCoins(){
-  const ref = doc(db, "users", userId);
-  const snap = await getDoc(ref);
-  document.getElementById("coins").innerText = snap.data().coins;
-}
+loadCoins();
 
 // 💸 SEND COINS
-async function sendCoins(){
+window.sendCoins = async function(){
   let to = document.getElementById("sendTo").value;
   let amount = parseInt(document.getElementById("amount").value);
 
   if(!to || !amount) return alert("Fill all");
 
-  const senderRef = doc(db, "users", userId);
-  const receiverRef = doc(db, "users", to);
+  let senderSnap = await get(ref(db,"users/"+userId));
+  let receiverSnap = await get(ref(db,"users/"+to));
 
-  const senderSnap = await getDoc(senderRef);
-  const receiverSnap = await getDoc(receiverRef);
+  if(!receiverSnap.exists()) return alert("User not found");
 
-  if(!receiverSnap.exists()){
-    alert("Receiver not found");
-    return;
-  }
+  let senderCoins = senderSnap.val().coins || 0;
 
-  let senderCoins = senderSnap.data().coins;
+  if(senderCoins < amount) return alert("Not enough coins");
 
-  if(senderCoins < amount){
-    alert("Not enough coins");
-    return;
-  }
+  update(ref(db,"users/"+userId), {coins: senderCoins - amount});
+  update(ref(db,"users/"+to), {coins: (receiverSnap.val().coins || 0) + amount});
 
-  await updateDoc(senderRef, {coins: senderCoins - amount});
-  await updateDoc(receiverRef, {
-    coins: receiverSnap.data().coins + amount
+  alert("Sent");
+};
+
+// 💳 RECHARGE REQUEST
+window.submitRecharge = function(){
+  let amt = parseInt(document.getElementById("rechargeAmount").value);
+  let screenshot = document.getElementById("screenshot").value;
+
+  if(amt < 10) return alert("Minimum ₹10");
+
+  push(ref(db,"recharges"),{
+    user:userId,
+    amount:amt,
+    screenshot:screenshot,
+    status:"Pending"
   });
 
-  alert("Coins Sent");
-  loadCoins();
-}
+  alert("Request submitted");
+};
 
 // 🚗 CREATE RIDE
-async function createRide(){
-  let type = document.getElementById("type").value;
-  let coins = parseInt(document.getElementById("rideCoins").value) || 0;
+window.createRide = function(){
 
-  await addDoc(collection(db, "Rides"), {
-    from:document.getElementById("from").value,
-    to:document.getElementById("to").value,
-    type:type,
-    coins:type==="Paid"?coins:0,
+  let ride = {
+    from: document.getElementById("from").value,
+    to: document.getElementById("to").value,
+    via: document.getElementById("via").value,
+    date: document.getElementById("date").value,
+    time: document.getElementById("time").value,
+    km: parseInt(document.getElementById("km").value),
+    seats: document.getElementById("seats").value,
+    type: document.getElementById("type").value,
+    coins: parseInt(document.getElementById("coins").value) || 0,
     createdBy:userId,
-    status:"Waiting"
-  });
-}
+    status: "Scheduled",
+    createdAt: Date.now()
+  };
 
-// 📦 LOAD RIDES
-function loadRides(){
-  onSnapshot(collection(db, "Rides"), snapshot=>{
-    let div = document.getElementById("rides");
-    div.innerHTML="";
+  push(ref(db, "rides"), ride);
+};
 
-    snapshot.forEach(docSnap=>{
-      let r = docSnap.data();
+// 📦 LOAD RIDES (unchanged logic)
+onValue(ref(db, "rides"), (snapshot) => {
 
-      div.innerHTML += `
-        <div class="card">
-          ${r.from} → ${r.to}<br>
-          Type: ${r.type}<br>
-          Coins: ${r.coins}<br>
-          Status: ${r.status}<br>
+  let data = snapshot.val();
+  let html = "";
 
-          ${
-            r.type==="Paid" && r.createdBy!==userId
-            ? `<button onclick="acceptRide('${docSnap.id}', ${r.coins}, '${r.createdBy}')">Accept Ride</button>`
-            : ""
-          }
-        </div>
-      `;
-    });
-  });
-}
-
-// 🎯 ACCEPT RIDE (TRANSFER COINS)
-window.acceptRide = async function(id, coins, owner){
-
-  const myRef = doc(db, "users", userId);
-  const ownerRef = doc(db, "users", owner);
-
-  const mySnap = await getDoc(myRef);
-
-  if(mySnap.data().coins < coins){
-    alert("Not enough coins");
+  if(!data){
+    document.getElementById("rides").innerHTML = "No rides";
     return;
   }
 
-  await updateDoc(myRef, {
-    coins: mySnap.data().coins - coins
+  let now = Date.now();
+
+  for(let id in data){
+    let r = data[id];
+
+    if(r.status==="Completed" || r.status==="Expired") continue;
+
+    html += `
+    <div class="ride">
+      <b>${r.from} → ${r.to}</b><br>
+      ${r.date} ${r.time}<br>
+      Type: ${r.type} | Coins: ${r.coins}<br>
+
+      <input id="price${id}" placeholder="Offer price">
+      <button onclick="requestRide('${id}')">Offer</button>
+    </div>
+    `;
+  }
+
+  document.getElementById("rides").innerHTML = html;
+});
+
+// 🎯 REQUEST
+window.requestRide = function(id){
+  let price = document.getElementById("price"+id).value;
+
+  push(ref(db, "requests/"+id), {
+    user:userId,
+    price: price
   });
 
-  const ownerSnap = await getDoc(ownerRef);
-
-  await updateDoc(ownerRef, {
-    coins: ownerSnap.data().coins + coins
-  });
-
-  await updateDoc(doc(db, "Rides", id), {
-    status:"Completed"
-  });
-
-  alert("Ride Accepted & Paid");
-  loadCoins();
-}
-
-// INIT
-initWallet();
-loadRides();
+  alert("Offer sent");
+};
 
 </script>
 
