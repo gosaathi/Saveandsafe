@@ -9,47 +9,142 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
 
 <style>
-body{font-family:Arial;background:#f2f2f2;margin:0}
-.header{background:#16A34A;color:white;padding:15px;text-align:center}
-.card{background:white;padding:10px;margin:10px;border-radius:10px}
-button{padding:10px;width:100%;margin-top:5px;background:#2563EB;color:white;border:none}
+body{margin:0;font-family:Arial;background:#f1f5f9}
+
+/* HEADER */
+.header{
+  background:#16A34A;
+  color:white;
+  padding:15px;
+  text-align:center;
+}
+
+/* PAGE */
+.page{display:none;padding:10px}
+.active{display:block}
+
+/* CARD */
+.card{
+  background:white;
+  padding:12px;
+  margin:10px 0;
+  border-radius:12px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* BUTTON */
+button{
+  padding:10px;
+  width:100%;
+  margin-top:6px;
+  border:none;
+  border-radius:8px;
+  background:#2563EB;
+  color:white;
+}
+
+/* INPUT */
+input,select{
+  width:100%;
+  padding:10px;
+  margin-top:6px;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+
+/* NAVBAR */
+.navbar{
+  position:fixed;
+  bottom:0;
+  width:100%;
+  display:flex;
+  background:white;
+  border-top:1px solid #ddd;
+}
+
+.navbar button{
+  flex:1;
+  background:none;
+  color:#333;
+}
+
+/* LOGIN */
+.login{
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
 </style>
 </head>
 
 <body>
 
+<!-- LOGIN -->
+<div id="login" class="login">
+  <button onclick="login()">Login with Google</button>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none">
+
 <div class="header">
-<h2>🚀 GoSaathi</h2>
-<p>Go Smart. Go Saathi.</p>
+  <h2>GoSaathi 🚀</h2>
 </div>
 
-<div class="card">
-<button onclick="login()">Login with Google</button>
-<p id="user"></p>
-<p id="coins"></p>
+<!-- HOME -->
+<div id="home" class="page active">
+  <h3>Available Rides</h3>
+  <div id="rides"></div>
 </div>
 
-<div class="card">
-<h3>Add Money</h3>
-<button onclick="addMoney(10)">Add ₹10</button>
+<!-- CREATE -->
+<div id="create" class="page">
+  <h3>Create Ride</h3>
+
+  <input id="from" placeholder="From">
+  <input id="to" placeholder="To">
+  <input id="via" placeholder="Via (optional)">
+
+  <select id="type">
+    <option>Free</option>
+    <option>Paid</option>
+  </select>
+
+  <select id="gender">
+    <option value="All">All</option>
+    <option value="Women">Only Women</option>
+  </select>
+
+  <button onclick="createRide()">Create Ride</button>
 </div>
 
-<div class="card">
-<h3>Create Ride</h3>
-<input id="from" placeholder="From">
-<input id="to" placeholder="To">
+<!-- WALLET -->
+<div id="wallet" class="page">
+  <h3>Wallet</h3>
+  <p id="coins"></p>
 
-<select id="type">
-<option>Free</option>
-<option>Paid</option>
-</select>
+  <h4>Scan & Pay</h4>
+  <img src="your-qr-image.jpg" style="width:100%;border-radius:10px">
 
-<button onclick="createRide()">Create Ride</button>
+  <button onclick="requestCoins()">I Paid ₹10</button>
 </div>
 
-<div class="card">
-<h3>Rides</h3>
-<div id="rides"></div>
+<!-- PROFILE -->
+<div id="profile" class="page">
+  <h3>Profile</h3>
+  <p id="user"></p>
+</div>
+
+</div>
+
+<!-- NAVBAR -->
+<div class="navbar">
+  <button onclick="show('home')">Home</button>
+  <button onclick="show('create')">Create</button>
+  <button onclick="show('wallet')">Wallet</button>
+  <button onclick="show('profile')">Profile</button>
 </div>
 
 <script>
@@ -59,9 +154,6 @@ const firebaseConfig = {
   apiKey: "AIzaSyCLQbR69NBKmyFK_DzIk8Dz_eFc6UWCQdg",
   authDomain: "togosaaythi-n.firebaseapp.com",
   projectId: "togosaaythi-n",
-  storageBucket: "togosaaythi-n.firebasestorage.app",
-  messagingSenderId: "1035484636234",
-  appId: "1:1035484636234:web:dd3c092b594f46f9a3f2b3"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -69,143 +161,93 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-let currentUser;
+let user;
 
 // LOGIN
 function login(){
   let provider = new firebase.auth.GoogleAuthProvider();
 
-  auth.signInWithPopup(provider).then(result=>{
-    currentUser = result.user;
+  auth.signInWithPopup(provider).then(res=>{
+    user = res.user;
 
-    db.collection("Users").doc(currentUser.uid).set({
-      name: currentUser.displayName,
-      email: currentUser.email,
-      coins: 100
-    }, {merge:true});
+    db.collection("Users").doc(user.uid).set({
+      name:user.displayName,
+      email:user.email,
+      coins:100
+    },{merge:true});
 
-    document.getElementById("user").innerText = currentUser.displayName;
+    document.getElementById("login").style.display="none";
+    document.getElementById("app").style.display="block";
+
+    document.getElementById("user").innerText=user.displayName;
 
     loadCoins();
     loadRides();
   });
 }
 
-// LOAD COINS
-function loadCoins(){
-  db.collection("Users").doc(currentUser.uid)
-  .onSnapshot(doc=>{
-    document.getElementById("coins").innerText =
-      "Coins: " + doc.data().coins;
-  });
+// NAVIGATION
+function show(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.getElementById(p).classList.add('active');
 }
 
-// ADD MONEY
-function addMoney(amount){
-  let upi = `upi://pay?pa=mratnamnalli@ybl&pn=GoSaathi&am=${amount}&cu=INR`;
-  window.location.href = upi;
-
-  db.collection("Payments").add({
-    userId: currentUser.uid,
-    amount: amount,
-    status: "pending"
+// COINS
+function loadCoins(){
+  db.collection("Users").doc(user.uid).onSnapshot(doc=>{
+    document.getElementById("coins").innerText="Coins: "+doc.data().coins;
   });
-
-  alert("Payment sent. Wait for approval");
 }
 
 // CREATE RIDE
 function createRide(){
   db.collection("Rides").add({
-    from: document.getElementById("from").value,
-    to: document.getElementById("to").value,
-    type: document.getElementById("type").value,
-    userId: currentUser.uid,
-    status: "Waiting"
+    from:from.value,
+    to:to.value,
+    via:via.value,
+    type:type.value,
+    gender:gender.value,
+    userId:user.uid
   });
 }
 
 // LOAD RIDES
 function loadRides(){
-  db.collection("Rides").onSnapshot(snapshot=>{
-    let div = document.getElementById("rides");
+  db.collection("Rides").onSnapshot(snap=>{
+    let div=document.getElementById("rides");
     div.innerHTML="";
 
-    snapshot.forEach(doc=>{
-      let r = doc.data();
+    snap.forEach(doc=>{
+      let r=doc.data();
 
-      div.innerHTML += `
+      div.innerHTML+=`
       <div class="card">
-        ${r.from} → ${r.to}<br>
+        <b>${r.from} → ${r.to}</b><br>
+        Via: ${r.via || "-"}<br>
         Type: ${r.type}<br>
+        ${r.gender=="Women"?"👩 Women Only":""}
 
-        <button onclick="requestRide('${doc.id}')">Request</button>
-        <button onclick="startRide('${doc.id}')">Start</button>
-        <button onclick="completeRide('${doc.id}')">Complete</button>
-
-        <input id="msg${doc.id}" placeholder="Chat">
-        <button onclick="sendMsg('${doc.id}')">Send</button>
-        <div id="chat${doc.id}"></div>
-
+        <button onclick="joinRide('${doc.id}')">Join</button>
       </div>
       `;
-
-      loadChat(doc.id);
     });
   });
 }
 
-// REQUEST
-function requestRide(id){
-  db.collection("Requests").add({
-    rideId: id,
-    userId: currentUser.uid
-  });
+// JOIN RIDE
+function joinRide(id){
+  alert("Request Sent");
 }
 
-// START RIDE
-function startRide(id){
-  navigator.geolocation.watchPosition(pos=>{
-    db.collection("Rides").doc(id).update({
-      lat: pos.coords.latitude,
-      lng: pos.coords.longitude,
-      status: "Started"
-    });
+// REQUEST COINS
+function requestCoins(){
+  db.collection("Payments").add({
+    userId:user.uid,
+    amount:10,
+    status:"pending"
   });
-}
 
-// COMPLETE RIDE
-function completeRide(id){
-  db.collection("Rides").doc(id).update({
-    status: "Completed"
-  });
-}
-
-// CHAT
-function sendMsg(id){
-  let msg = document.getElementById("msg"+id).value;
-
-  db.collection("Chats").doc(id)
-  .collection("messages").add({
-    text: msg,
-    user: currentUser.displayName,
-    time: Date.now()
-  });
-}
-
-// LOAD CHAT
-function loadChat(id){
-  db.collection("Chats").doc(id)
-  .collection("messages").orderBy("time")
-  .onSnapshot(snapshot=>{
-    let div = document.getElementById("chat"+id);
-    if(!div) return;
-
-    div.innerHTML="";
-    snapshot.forEach(doc=>{
-      div.innerHTML += `<p>${doc.data().user}: ${doc.data().text}</p>`;
-    });
-  });
+  alert("Request sent. Admin will add coins.");
 }
 
 </script>
