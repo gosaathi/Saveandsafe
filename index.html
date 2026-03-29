@@ -4,78 +4,22 @@
 <title>GoSaathi</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+<!-- ✅ Firebase COMPAT VERSION (IMPORTANT FIX) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <style>
 body{margin:0;font-family:Arial;background:#f1f5f9}
-
-/* HEADER */
-.header{
-  background:#16A34A;
-  color:white;
-  padding:15px;
-  text-align:center;
-}
-
-/* PAGE */
+.header{background:#16A34A;color:white;padding:15px;text-align:center}
 .page{display:none;padding:10px}
 .active{display:block}
-
-/* CARD */
-.card{
-  background:white;
-  padding:12px;
-  margin:10px 0;
-  border-radius:12px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.1);
-}
-
-/* BUTTON */
-button{
-  padding:10px;
-  width:100%;
-  margin-top:6px;
-  border:none;
-  border-radius:8px;
-  background:#2563EB;
-  color:white;
-}
-
-/* INPUT */
-input,select{
-  width:100%;
-  padding:10px;
-  margin-top:6px;
-  border-radius:8px;
-  border:1px solid #ccc;
-}
-
-/* NAVBAR */
-.navbar{
-  position:fixed;
-  bottom:0;
-  width:100%;
-  display:flex;
-  background:white;
-  border-top:1px solid #ddd;
-}
-
-.navbar button{
-  flex:1;
-  background:none;
-  color:#333;
-}
-
-/* LOGIN */
-.login{
-  height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-}
-
+.card{background:white;padding:12px;margin:10px 0;border-radius:12px}
+button{padding:10px;width:100%;margin-top:6px;border:none;border-radius:8px;background:#2563EB;color:white}
+input,select{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:1px solid #ccc}
+.navbar{position:fixed;bottom:0;width:100%;display:flex;background:white;border-top:1px solid #ddd}
+.navbar button{flex:1;background:none;color:#333}
+.login{height:100vh;display:flex;justify-content:center;align-items:center}
 </style>
 </head>
 
@@ -86,23 +30,18 @@ input,select{
   <button onclick="login()">Login with Google</button>
 </div>
 
-<!-- MAIN APP -->
+<!-- APP -->
 <div id="app" style="display:none">
 
-<div class="header">
-  <h2>GoSaathi 🚀</h2>
-</div>
+<div class="header"><h2>GoSaathi 🚀</h2></div>
 
-<!-- HOME -->
 <div id="home" class="page active">
   <h3>Available Rides</h3>
   <div id="rides"></div>
 </div>
 
-<!-- CREATE -->
 <div id="create" class="page">
   <h3>Create Ride</h3>
-
   <input id="from" placeholder="From">
   <input id="to" placeholder="To">
   <input id="via" placeholder="Via (optional)">
@@ -120,18 +59,17 @@ input,select{
   <button onclick="createRide()">Create Ride</button>
 </div>
 
-<!-- WALLET -->
 <div id="wallet" class="page">
   <h3>Wallet</h3>
   <p id="coins"></p>
 
   <h4>Scan & Pay</h4>
-  <img src="your-qr-image.jpg" style="width:100%;border-radius:10px">
+  <!-- ✅ మీ QR image link ఇక్కడ పెట్టండి -->
+  <img src="YOUR_QR_IMAGE_URL" style="width:100%;border-radius:10px">
 
   <button onclick="requestCoins()">I Paid ₹10</button>
 </div>
 
-<!-- PROFILE -->
 <div id="profile" class="page">
   <h3>Profile</h3>
   <p id="user"></p>
@@ -139,7 +77,6 @@ input,select{
 
 </div>
 
-<!-- NAVBAR -->
 <div class="navbar">
   <button onclick="show('home')">Home</button>
   <button onclick="show('create')">Create</button>
@@ -149,7 +86,7 @@ input,select{
 
 <script>
 
-// FIREBASE CONFIG
+// ✅ Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyCLQbR69NBKmyFK_DzIk8Dz_eFc6UWCQdg",
   authDomain: "togosaaythi-n.firebaseapp.com",
@@ -162,21 +99,17 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 let user;
-<script>
-// LOGIN
-function login(){
-  
-const provider = new firebase.auth.GoogleAuthProvider();
 
+// ✅ LOGIN (FIXED)
 function login(){
-  firebase.auth().signInWithRedirect(provider);
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithRedirect(provider);
 }
 
-// Redirect result handle
-firebase.auth().getRedirectResult().then(result=>{
+// ✅ HANDLE REDIRECT RESULT (IMPORTANT)
+auth.getRedirectResult().then(result=>{
   if(result.user){
-
-    let user = result.user;
+    user = result.user;
 
     db.collection("Users").doc(user.uid).set({
       name: user.displayName,
@@ -193,9 +126,7 @@ firebase.auth().getRedirectResult().then(result=>{
     loadRides();
   }
 });
-}    
 
-  <script>
 // NAVIGATION
 function show(p){
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
@@ -204,8 +135,11 @@ function show(p){
 
 // COINS
 function loadCoins(){
-  db.collection("Users").doc(user.uid).onSnapshot(doc=>{
-    document.getElementById("coins").innerText="Coins: "+doc.data().coins;
+  db.collection("Users").doc(user.uid)
+  .onSnapshot(doc=>{
+    if(doc.exists){
+      document.getElementById("coins").innerText="Coins: "+doc.data().coins;
+    }
   });
 }
 
@@ -244,12 +178,12 @@ function loadRides(){
   });
 }
 
-// JOIN RIDE
+// JOIN
 function joinRide(id){
   alert("Request Sent");
 }
 
-// REQUEST COINS
+// PAYMENT REQUEST
 function requestCoins(){
   db.collection("Payments").add({
     userId:user.uid,
