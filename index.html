@@ -1,218 +1,212 @@
 <!DOCTYPE html>
 <html>
 <head>
+<title>GoSaathi</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ride Share Live</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
 
 <style>
-body {font-family: Arial;margin:0;background: linear-gradient(135deg,#141e30,#243b55);color:white;}
-header {text-align:center;padding:15px;background:#00000080;}
-.container {padding:15px;}
-.card {background:white;color:black;padding:15px;border-radius:12px;margin-bottom:15px;}
-input {width:100%;padding:10px;margin-top:8px;border-radius:8px;border:1px solid #ccc;}
-button {width:100%;padding:10px;margin-top:10px;border:none;border-radius:8px;background:#28a745;color:white;font-weight:bold;}
-.ride {background:#fff;color:black;padding:10px;border-radius:10px;margin-top:10px;}
+body{font-family:Arial;background:#f2f2f2;margin:0}
+.header{background:#16A34A;color:white;padding:15px;text-align:center}
+.card{background:white;padding:10px;margin:10px;border-radius:10px}
+button{padding:10px;width:100%;margin-top:5px;background:#2563EB;color:white;border:none}
 </style>
 </head>
 
 <body>
 
-<header>
-  <h2>🚀 Ride Share Live</h2>
-</header>
-
-<div class="container">
-
-<!-- WALLET -->
-<div class="card">
-<h3>💰 Wallet</h3>
-<p id="userId"></p>
-<p>Coins: <span id="coins">0</span></p>
-
-<input id="sendTo" placeholder="Send to User ID">
-<input id="amount" placeholder="Amount">
-<button onclick="sendCoins()">Send Coins</button>
+<div class="header">
+<h2>🚀 GoSaathi</h2>
+<p>Go Smart. Go Saathi.</p>
 </div>
 
-<!-- UPI RECHARGE -->
 <div class="card">
-<h3>💳 Add Coins (Manual)</h3>
-<p>Send money to UPI: <b>mratnamnalli@ybl</b></p>
-<p>₹1 = 10 Coins</p>
-
-<input id="rechargeAmount" placeholder="Enter Amount (min ₹10)">
-<input id="screenshot" placeholder="Paste Screenshot Link">
-<button onclick="submitRecharge()">Submit Request</button>
+<button onclick="login()">Login with Google</button>
+<p id="user"></p>
+<p id="coins"></p>
 </div>
 
-<!-- CREATE RIDE -->
+<div class="card">
+<h3>Add Money</h3>
+<button onclick="addMoney(10)">Add ₹10</button>
+</div>
+
 <div class="card">
 <h3>Create Ride</h3>
 <input id="from" placeholder="From">
 <input id="to" placeholder="To">
-<input id="via" placeholder="Via route">
-<input id="date" type="date">
-<input id="time" type="time">
-<input id="km" placeholder="KM">
-<input id="seats" placeholder="Seats">
 
 <select id="type">
-<option value="Free">Free</option>
-<option value="Paid">Paid</option>
+<option>Free</option>
+<option>Paid</option>
 </select>
-
-<input id="coins" placeholder="Coins (for Paid ride)">
 
 <button onclick="createRide()">Create Ride</button>
 </div>
 
-<!-- RIDES -->
 <div class="card">
-<h3>Live Rides</h3>
-<div id="rides">Loading...</div>
+<h3>Rides</h3>
+<div id="rides"></div>
 </div>
 
-</div>
+<script>
 
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, push, onValue, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
+// FIREBASE CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyCLQbR69NBKmyFK_DzIk8Dz_eFc6UWCQdg",
   authDomain: "togosaaythi-n.firebaseapp.com",
-  databaseURL: "https://togosaaythi-n-default-rtdb.firebaseio.com/",
-  projectId: "togosaaythi-n"
+  projectId: "togosaaythi-n",
+  storageBucket: "togosaaythi-n.firebasestorage.app",
+  messagingSenderId: "1035484636234",
+  appId: "1:1035484636234:web:dd3c092b594f46f9a3f2b3"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+firebase.initializeApp(firebaseConfig);
 
-// 👤 USER SYSTEM
-let userId = localStorage.getItem("userId");
-if(!userId){
-  userId = "user_" + Math.floor(Math.random()*100000);
-  localStorage.setItem("userId", userId);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-  // give free 100 coins
-  update(ref(db,"users/"+userId), {coins:100});
+let currentUser;
+
+// LOGIN
+function login(){
+  let provider = new firebase.auth.GoogleAuthProvider();
+
+  auth.signInWithPopup(provider).then(result=>{
+    currentUser = result.user;
+
+    db.collection("Users").doc(currentUser.uid).set({
+      name: currentUser.displayName,
+      email: currentUser.email,
+      coins: 100
+    }, {merge:true});
+
+    document.getElementById("user").innerText = currentUser.displayName;
+
+    loadCoins();
+    loadRides();
+  });
 }
-document.getElementById("userId").innerText = "User: " + userId;
 
-// 💰 LOAD COINS
+// LOAD COINS
 function loadCoins(){
-  onValue(ref(db,"users/"+userId), snap=>{
-    let data = snap.val();
-    document.getElementById("coins").innerText = data?.coins || 0;
+  db.collection("Users").doc(currentUser.uid)
+  .onSnapshot(doc=>{
+    document.getElementById("coins").innerText =
+      "Coins: " + doc.data().coins;
   });
 }
-loadCoins();
 
-// 💸 SEND COINS
-window.sendCoins = async function(){
-  let to = document.getElementById("sendTo").value;
-  let amount = parseInt(document.getElementById("amount").value);
+// ADD MONEY
+function addMoney(amount){
+  let upi = `upi://pay?pa=mratnamnalli@ybl&pn=GoSaathi&am=${amount}&cu=INR`;
+  window.location.href = upi;
 
-  if(!to || !amount) return alert("Fill all");
-
-  let senderSnap = await get(ref(db,"users/"+userId));
-  let receiverSnap = await get(ref(db,"users/"+to));
-
-  if(!receiverSnap.exists()) return alert("User not found");
-
-  let senderCoins = senderSnap.val().coins || 0;
-
-  if(senderCoins < amount) return alert("Not enough coins");
-
-  update(ref(db,"users/"+userId), {coins: senderCoins - amount});
-  update(ref(db,"users/"+to), {coins: (receiverSnap.val().coins || 0) + amount});
-
-  alert("Sent");
-};
-
-// 💳 RECHARGE REQUEST
-window.submitRecharge = function(){
-  let amt = parseInt(document.getElementById("rechargeAmount").value);
-  let screenshot = document.getElementById("screenshot").value;
-
-  if(amt < 10) return alert("Minimum ₹10");
-
-  push(ref(db,"recharges"),{
-    user:userId,
-    amount:amt,
-    screenshot:screenshot,
-    status:"Pending"
+  db.collection("Payments").add({
+    userId: currentUser.uid,
+    amount: amount,
+    status: "pending"
   });
 
-  alert("Request submitted");
-};
+  alert("Payment sent. Wait for approval");
+}
 
-// 🚗 CREATE RIDE
-window.createRide = function(){
-
-  let ride = {
+// CREATE RIDE
+function createRide(){
+  db.collection("Rides").add({
     from: document.getElementById("from").value,
     to: document.getElementById("to").value,
-    via: document.getElementById("via").value,
-    date: document.getElementById("date").value,
-    time: document.getElementById("time").value,
-    km: parseInt(document.getElementById("km").value),
-    seats: document.getElementById("seats").value,
     type: document.getElementById("type").value,
-    coins: parseInt(document.getElementById("coins").value) || 0,
-    createdBy:userId,
-    status: "Scheduled",
-    createdAt: Date.now()
-  };
-
-  push(ref(db, "rides"), ride);
-};
-
-// 📦 LOAD RIDES (unchanged logic)
-onValue(ref(db, "rides"), (snapshot) => {
-
-  let data = snapshot.val();
-  let html = "";
-
-  if(!data){
-    document.getElementById("rides").innerHTML = "No rides";
-    return;
-  }
-
-  let now = Date.now();
-
-  for(let id in data){
-    let r = data[id];
-
-    if(r.status==="Completed" || r.status==="Expired") continue;
-
-    html += `
-    <div class="ride">
-      <b>${r.from} → ${r.to}</b><br>
-      ${r.date} ${r.time}<br>
-      Type: ${r.type} | Coins: ${r.coins}<br>
-
-      <input id="price${id}" placeholder="Offer price">
-      <button onclick="requestRide('${id}')">Offer</button>
-    </div>
-    `;
-  }
-
-  document.getElementById("rides").innerHTML = html;
-});
-
-// 🎯 REQUEST
-window.requestRide = function(id){
-  let price = document.getElementById("price"+id).value;
-
-  push(ref(db, "requests/"+id), {
-    user:userId,
-    price: price
+    userId: currentUser.uid,
+    status: "Waiting"
   });
+}
 
-  alert("Offer sent");
-};
+// LOAD RIDES
+function loadRides(){
+  db.collection("Rides").onSnapshot(snapshot=>{
+    let div = document.getElementById("rides");
+    div.innerHTML="";
+
+    snapshot.forEach(doc=>{
+      let r = doc.data();
+
+      div.innerHTML += `
+      <div class="card">
+        ${r.from} → ${r.to}<br>
+        Type: ${r.type}<br>
+
+        <button onclick="requestRide('${doc.id}')">Request</button>
+        <button onclick="startRide('${doc.id}')">Start</button>
+        <button onclick="completeRide('${doc.id}')">Complete</button>
+
+        <input id="msg${doc.id}" placeholder="Chat">
+        <button onclick="sendMsg('${doc.id}')">Send</button>
+        <div id="chat${doc.id}"></div>
+
+      </div>
+      `;
+
+      loadChat(doc.id);
+    });
+  });
+}
+
+// REQUEST
+function requestRide(id){
+  db.collection("Requests").add({
+    rideId: id,
+    userId: currentUser.uid
+  });
+}
+
+// START RIDE
+function startRide(id){
+  navigator.geolocation.watchPosition(pos=>{
+    db.collection("Rides").doc(id).update({
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude,
+      status: "Started"
+    });
+  });
+}
+
+// COMPLETE RIDE
+function completeRide(id){
+  db.collection("Rides").doc(id).update({
+    status: "Completed"
+  });
+}
+
+// CHAT
+function sendMsg(id){
+  let msg = document.getElementById("msg"+id).value;
+
+  db.collection("Chats").doc(id)
+  .collection("messages").add({
+    text: msg,
+    user: currentUser.displayName,
+    time: Date.now()
+  });
+}
+
+// LOAD CHAT
+function loadChat(id){
+  db.collection("Chats").doc(id)
+  .collection("messages").orderBy("time")
+  .onSnapshot(snapshot=>{
+    let div = document.getElementById("chat"+id);
+    if(!div) return;
+
+    div.innerHTML="";
+    snapshot.forEach(doc=>{
+      div.innerHTML += `<p>${doc.data().user}: ${doc.data().text}</p>`;
+    });
+  });
+}
 
 </script>
 
