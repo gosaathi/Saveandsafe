@@ -22,6 +22,38 @@
     <div id="allRides"></div>
 
     <script>
+        // Add this at the top of your script
+const provider = new firebase.auth.GoogleAuthProvider();
+
+function adminLogin() {
+    firebase.auth().signInWithPopup(provider)
+    .then((result) => {
+        console.log("Logged in as:", result.user.email);
+        // Once logged in, the listeners (loadPayments, etc.) will start working automatically
+        initAdmin(); 
+    }).catch((error) => {
+        alert("Login failed: " + error.message);
+    });
+}
+
+// Wrap your data loading in a function
+function initAdmin() {
+    loadPayments();
+    loadRides();
+    loadReports();
+}
+
+// Optional: Auto-check if already logged in
+firebase.auth().onAuthStateChanged((user) => {
+    if (user) {
+        initAdmin();
+    } else {
+        // Show a login button if not logged in
+        document.body.innerHTML = '<button onclick="adminLogin()">Login to Admin Panel</button>' + document.body.innerHTML;
+    }
+});
+
+        
         const firebaseConfig = { apiKey: "AIzaSyCLQbR69NBKmyFK_DzIk8Dz_eFc6UWCQdg", authDomain: "togosaaythi-n.firebaseapp.com", projectId: "togosaaythi-n" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
