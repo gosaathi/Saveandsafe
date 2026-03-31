@@ -141,6 +141,7 @@ function postRide() {
         driverName: auth.currentUser.displayName,
         from: document.getElementById('from').value,
         to: document.getElementById('to').value,
+        route: document.getElementById('route').value,
         type: document.getElementById('rideType').value,
         seats: document.getElementById('seats').value,
         status: "Available",
@@ -164,12 +165,26 @@ function loadRides() {
     });
 }
 
+function shareInvite() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    // నీ వెబ్సైట్ URL ని ఇక్కడ మార్చుకో
+    const inviteLink = "https://gosaathi.github.io/Saveandsafe/?invite=" + user.uid;
+    
+    const message = "Hi! Join Gosaathi for safe rides. నా ఈ లింకు ఉపయోగించి జాయిన్ అయితే ₹1200.00 విలువ చేసే Subscription మరియు 50 coins bonus పూర్తిగా ఉచితంగా వస్తాయి." + inviteLink;
+    
+    // WhatsApp కి పంపడం
+    const whatsappUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(message);
+    window.open(whatsappUrl, '_blank');
+}
+    
 function requestCoins() {
     const amount = document.getElementById('payAmount').value;
     const utr = document.getElementById('utrId').value;
 
     if (!amount || !utr) {
-        alert("Please enter both Amount and UTR Number!");
+        alert("Amount and UTR Number రెండూ పొందుపరచాలి!");
         return;
     }
 
@@ -181,7 +196,7 @@ function requestCoins() {
         status: "Pending",
         time: Date.now()
     }).then(() => {
-        alert("Success! Admin will verify UTR: " + utr + " and add coins soon.");
+        alert("Success! Admin  verify చేసి UTR: " + utr + "  త్వరలో కాయిన్స్ అందజేస్తారు.");
         document.getElementById('utrId').value = ""; // Clear input
     }).catch(err => alert("Error: " + err.message));
     }
