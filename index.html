@@ -3,184 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GoSaathi-n - Share Together Save Together</title>
+    <title>GoSaathi - Share Together Save Together</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-        
     <style>
         :root { --primary: #007bff; --secondary: #28a745; --dark: #1e3c72; }
-        body { margin:0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#f4f7f6; color: #333; }
-        .header { background: linear-gradient(135deg, var(--dark), #2a5298); color:white; padding:20px; text-align:center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        body { margin:0; font-family: 'Segoe UI', sans-serif; background:#f4f7f6; color: #333; }
+        .header { background: linear-gradient(135deg, var(--dark), #2a5298); color:white; padding:20px; text-align:center; }
         .nav { display:flex; justify-content:space-around; background:white; padding:12px; position:sticky; top:0; z-index:100; border-bottom:1px solid #ddd; }
         .nav button { background:none; border:none; font-weight:bold; color: var(--dark); cursor:pointer; }
         .container { padding:15px; max-width: 500px; margin: auto; }
         .card { background:white; padding:15px; border-radius:15px; margin-bottom:15px; box-shadow:0 4px 6px rgba(0,0,0,0.05); }
         .wallet-card { background: var(--dark); color: white; text-align: center; }
         input, select, button { width:100%; padding:12px; margin-top:10px; border-radius:10px; border:1px solid #ddd; box-sizing: border-box; }
-        button { background: var(--primary); color:white; border:none; font-weight:bold; cursor:pointer; transition: 0.3s; }
-        button:active { transform: scale(0.98); }
-        .ride-item { border-left: 5px solid var(--primary); padding: 10px; margin-bottom: 10px; background: #f9f9f9; border-radius: 5px; }
-        .invitation-box { background: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 10px; text-align: center; font-size: 0.9em; }
-        #qr-box img { width: 200px; margin: 10px auto; display: block; }
-        .hidden { display: none; }
+        button { background: var(--primary); color:white; border:none; font-weight:bold; cursor:pointer; }
+        .ride-item { border-left: 5px solid var(--primary); padding: 10px; margin-bottom: 10px; background: #f9f9f9; }
+        /* Activation Screen Styles */
+        #activation-screen { text-align:center; padding:20px; background:#fff; border-radius:20px; margin-top:20px; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <img src="logo.png" alt="Gosaathi Logo" style="height:50px;">
-    <h1>GoSaathi</h1>
-    <p>Share Together • Save Together</p>
-</div>
-
-<div class="nav">
-    <button onclick="showPage('home')">Home</button>
-    <button onclick="showPage('ride')">Rides</button>
-    <button onclick="showPage('wallet')">Wallet</button>
-    <button onclick="showPage('profile')">Invite</button>
+<div id="main-ui" style="display:none;">
+    <div class="header">
+        <h1>GoSaathi</h1>
+        <p>Share Together • Save Together</p>
+    </div>
+    <div class="nav">
+        <button onclick="showPage('home')">Home</button>
+        <button onclick="showPage('ride')">Post Ride</button>
+        <button onclick="showPage('wallet')">Wallet</button>
+        <button onclick="showPage('profile')">Invite</button>
+    </div>
 </div>
 
 <div class="container">
-    <div id="wallet" class="hidden">
-        <div class="card wallet-card">
-            <h3>My Balance</h3>
-            <h2 id="coinBalance">0</h2>
-            <p>Coins (10 Coins = ₹1)</p>
-        </div>
-        <div 
-        <div class="card">
-    <h3>Add Coins (₹1 = 10 Coins)</h3>
-    <input type="number" id="payAmount" placeholder="Enter Amount (e.g. 1200)" style="width:80%; padding:10px; margin-bottom:10px;">
-    <input type="text" id="utrId" placeholder="Enter UPI UTR / Transaction ID" style="width:80%; padding:10px; margin-bottom:10px;">
-    <p>Scan QR & Pay, then enter UTR above.</p>
-    <img src="qr.png" width="150"><br>
-    <button onclick="requestCoins()" style="background:#28a745; color:white; padding:10px 20px; border:none; border-radius:5px; cursor:pointer;">Request Coins</button>
-</div>    
+    <div id="login-screen" style="text-align:center; margin-top:100px;">
+        <img src="logo.png" style="height:80px;"><br>
+        <h2>Welcome to Gosaathi</h2>
+        <button onclick="googleLogin()" style="background:#db4437;">Login with Google</button>
     </div>
 
-    <div id="home">
-        <div class="invitation-box" id="inviteStatus">
-            Invitations Left: <span id="inviteCount">5</span> | Expiring in: <span id="timer">30d</span>
+    <div id="activation-screen" style="display:none;">
+        <div class="card">
+            <h2 style="color:var(--primary);">Account Activation</h2>
+            <p>మీ అకౌంట్ ఇంకా యాక్టివేట్ కాలేదు. కొనసాగించడానికి ఒక ఆప్షన్ ఎంచుకోండి:</p>
+            <hr>
+            <h4>Option 1: Use Invite Code (Free)</h4>
+            <input type="text" id="manualInviteCode" placeholder="Enter Friend's UID">
+            <button onclick="activateByCode()" style="background:var(--secondary);">Activate Free</button>
+            <br><br>
+            <h4>Option 2: Instant Unlock</h4>
+            <p>Pay ₹1200 for full access</p>
+            <button onclick="showPage('wallet')">Pay Now</button>
         </div>
-        <h3>Available Rides</h3>
+    </div>
+
+    <div id="home" style="display:none;">
+        <div class="card">Available Rides</div>
         <div id="ridesContainer">Loading rides...</div>
     </div>
 
-    <div id="ride" class="hidden">
+    <div id="wallet" style="display:none;">
+        <div class="card wallet-card">
+            <h3>Balance: <span id="coinBalance">0</span> Coins</h3>
+        </div>
+        <div class="card">
+            <h3>Add Coins / Activation Fee</h3>
+            <p>Scan QR & Pay ₹1200 (or any amount)</p>
+            <img src="qr.png" style="width:180px; display:block; margin:auto;">
+            <input type="number" id="payAmount" placeholder="Amount">
+            <input type="text" id="utrId" placeholder="UTR / Transaction ID">
+            <button onclick="requestCoins()" style="background:var(--secondary);">Submit Payment</button>
+        </div>
+    </div>
+
+    <div id="ride" style="display:none;">
         <div class="card">
             <h3>Post a Ride</h3>
             <input id="from" placeholder="From Location">
             <input id="to" placeholder="To Location">
-            <input id="route" placeholder="Via (Route)">
-            <select id="rideType">
-                <option value="Free">Free Ride</option>
-                <option value="Paid">Paid (Coins)</option>
-            </select>
-            <input type="number" id="seats" placeholder="Available Seats">
-            <button onclick="postRide()">Start Journey</button>
+            <input id="seats" type="number" placeholder="Seats">
+            <button onclick="postRide()">Post Now</button>
         </div>
     </div>
 
-    <div id="profile" class="hidden">
+    <div id="profile" style="display:none;">
         <div class="card">
-            <h3>Invite Friends</h3>
-            <p>Share Gosaathi with friends for free join!</p>
-            <button onclick="shareLink()">Share Invite Link</button>
+            <h3>Your Referral Code</h3>
+            <p id="myUid" style="background:#eee; padding:10px; font-size:0.8em;"></p>
+            <button onclick="shareInvite()" style="background:#25D366;">WhatsApp Invite</button>
+            <button onclick="auth.signOut()" style="background:#555; margin-top:20px;">Logout</button>
         </div>
-        <button onclick="googleLogin()" id="loginBtn">Login with Google</button>
     </div>
 </div>
 
 <script>
-// --- CONFIG ---
 const firebaseConfig = { apiKey: "AIzaSyCLQbR69NBKmyFK_DzIk8Dz_eFc6UWCQdg", authDomain: "togosaaythi-n.firebaseapp.com", projectId: "togosaaythi-n" };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-let currentUser = null;
-
-// --- AUTH ---
+// --- AUTH LOGIC ---
 function googleLogin() {
     const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).then(res => {
-        currentUser = res.user;
-        checkUserInDB(res.user);
-    });
+    auth.signInWithPopup(provider);
 }
 
-function checkUserInDB(user) {
-    const userRef = db.collection("Users").doc(user.uid);
-    userRef.get().then(doc => {
-        if (!doc.exists) {
-            userRef.set({
-                name: user.displayName,
-                email: user.email,
-                coins: 50, // New user bonus
-                invites: 5,
-                joinDate: Date.now()
-            });
-        }
-        updateUI();
-    });
-}
-
-// --- NAVIGATION ---
-// 1. పేజీలను మార్చే ఫంక్షన్ (దీన్ని అప్‌డేట్ చేయి)
-function showPage(pageId) {
-    // అన్ని పేజీలను దాచిపెట్టు
-    const pages = ['home', 'wallet', 'profile', 'activation-screen', 'login-screen'];
-    pages.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
-    });
-
-    // అడిగిన పేజీని మాత్రం చూపించు
-    const target = document.getElementById(pageId);
-    if (target) target.style.display = 'block';
-}
-
-// 2. Auth Listener లో మార్పు
-firebase.auth().onAuthStateChanged((user) => {
+auth.onAuthStateChanged(user => {
     if (user) {
-        // లాగిన్ అయ్యాక నేరుగా హోమ్ కి వెళ్ళకుండా, స్టేటస్ చెక్ చేయాలి
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('myUid').innerText = user.uid;
         checkUserStatus(user);
     } else {
+        document.getElementById('main-ui').style.display = 'none';
         showPage('login-screen');
     }
 });
 
-// 3. User Status ని బట్టి నిర్ణయం
 function checkUserStatus(user) {
-    db.collection("Users").doc(user.uid).onSnapshot((doc) => {
+    db.collection("Users").doc(user.uid).onSnapshot(doc => {
         if (doc.exists) {
             const data = doc.data();
             if (data.membership === "Active") {
-                showPage('home'); // అకౌంట్ ఓకే అయితే హోమ్ కి
-                   // document.querySelectorAll('.container > div').forEach(div => div.classList.add('hidden'));
-                   // document.getElementById(pageId).classList.remove('hidden');
-                     if(pageId === 'home') loadRides();
+                document.getElementById('main-ui').style.display = 'block';
+                showPage('home');
+                updateUI(data);
             } else {
-                showPage('activation-screen'); // లేదంటే యాక్టివేషన్ స్క్రీన్ కి
+                showPage('activation-screen');
             }
         } else {
-            // కొత్త యూజర్ అయితే పెండింగ్ తో క్రియేట్ చేయాలి
             handleNewUser(user);
         }
     });
 }
 
-// --- LOGIC ---
+function handleNewUser(user) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const inviteCode = urlParams.get('invite');
+    
+    db.collection("Users").doc(user.uid).set({
+        name: user.displayName,
+        email: user.email,
+        coins: inviteCode ? 50 : 0,
+        membership: inviteCode ? "Active" : "Pending",
+        invitedBy: inviteCode || "Direct",
+        joinDate: Date.now()
+    });
+}
+
+function activateByCode() {
+    const code = document.getElementById('manualInviteCode').value.trim();
+    if(!code) return alert("Code ఎంటర్ చేయండి");
+    
+    db.collection("Users").doc(auth.currentUser.uid).update({
+        membership: "Active",
+        coins: 50,
+        invitedBy: code
+    }).then(() => alert("Activated Successfully!"));
+}
+
+// --- NAVIGATION ---
+function showPage(pageId) {
+    const pages = ['home', 'wallet', 'ride', 'profile', 'activation-screen', 'login-screen'];
+    pages.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = (id === pageId) ? 'block' : 'none';
+    });
+    if(pageId === 'home') loadRides();
+}
+
 function postRide() {
     db.collection("Rides").add({
         driverId: auth.currentUser.uid,
         driverName: auth.currentUser.displayName,
         from: document.getElementById('from').value,
         to: document.getElementById('to').value,
-        route: document.getElementById('route').value,
-        type: document.getElementById('rideType').value,
         seats: document.getElementById('seats').value,
         status: "Available",
         time: Date.now()
@@ -193,38 +192,18 @@ function loadRides() {
         container.innerHTML = "";
         snap.forEach(doc => {
             const r = doc.data();
-            container.innerHTML += `
-                <div class="card ride-item">
-                    <b>${r.from} → ${r.to}</b><br>
-                    <small>By: ${r.driverName} | ${r.type}</small><br>
-                    <button onclick="requestRide('${doc.id}')" style="width:auto; padding:5px 10px; margin-top:5px;">Join</button>
-                </div>`;
+            container.innerHTML += `<div class="card ride-item">
+                <b>${r.from} → ${r.to}</b><br><small>Driver: ${r.driverName}</small>
+                <button style="width:auto; padding:5px; margin-top:5px;">Join Ride</button>
+            </div>`;
         });
     });
 }
 
-function shareInvite() {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    // నీ వెబ్సైట్ URL ని ఇక్కడ మార్చుకో
-    const inviteLink = "https://gosaathi.github.io/Saveandsafe/?invite=" + user.uid;
-    
-    const message = "Hi! Join Gosaathi for safe rides. నా ఈ లింకు ఉపయోగించి జాయిన్ అయితే ₹1200.00 విలువ చేసే Subscription మరియు 50 coins bonus పూర్తిగా ఉచితంగా వస్తాయి." + inviteLink;
-    
-    // WhatsApp కి పంపడం
-    const whatsappUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(message);
-    window.open(whatsappUrl, '_blank');
-}
-    
 function requestCoins() {
     const amount = document.getElementById('payAmount').value;
     const utr = document.getElementById('utrId').value;
-
-    if (!amount || !utr) {
-        alert("Amount and UTR Number రెండూ పొందుపరచాలి!");
-        return;
-    }
+    if(!amount || !utr) return alert("Details ఎంటర్ చేయండి");
 
     db.collection("Payments").add({
         userId: auth.currentUser.uid,
@@ -233,21 +212,18 @@ function requestCoins() {
         utr: utr,
         status: "Pending",
         time: Date.now()
-    }).then(() => {
-        alert("Success! Admin  verify చేసి UTR: " + utr + "  త్వరలో కాయిన్స్ అందజేస్తారు.");
-        document.getElementById('utrId').value = ""; // Clear input
-    }).catch(err => alert("Error: " + err.message));
-    }
-
-function updateUI() {
-    db.collection("Users").doc(auth.currentUser.uid).onSnapshot(doc => {
-        const data = doc.data();
-        document.getElementById('coinBalance').innerText = data.coins;
-        document.getElementById('inviteCount').innerText = data.invites;
-    });
+    }).then(() => alert("Payment submitted for verification!"));
 }
 
-auth.onAuthStateChanged(user => { if(user) { currentUser = user; updateUI(); } });
+function updateUI(data) {
+    document.getElementById('coinBalance').innerText = data.coins || 0;
+}
+
+function shareInvite() {
+    const link = "https://gosaathi.github.io/Saveandsafe/?invite=" + auth.currentUser.uid;
+    const msg = encodeURIComponent("Hi! Join Gosaathi for safe rides. నా లింకుతో జాయిన్ అయితే ₹1200 సబ్‌స్క్రిప్షన్ ఫ్రీ! " + link);
+    window.open("https://api.whatsapp.com/send?text=" + msg, '_blank');
+}
 </script>
 </body>
 </html>
