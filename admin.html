@@ -108,21 +108,23 @@ function loadPayments() {
         }
 
         // 4. Action Logic
-        function approvePayment(payId, userId, amount) {
-            const coinsToAdd = amount * 10;
-            
-            // Increment user coins
-            db.collection("Users").doc(userId).update({
-                coins: firebase.firestore.FieldValue.increment(coinsToAdd)
-            }).then(() => {
-                // Mark payment as approved
-                return db.collection("Payments").doc(payId).update({ status: "Approved" });
-            }).then(() => {
-                alert("Payment Approved!");
-            }).catch(err => {
-                alert("Error: " + err.message);
-            });
-        }
+// --- పాత ఫంక్షన్‌ని తీసేసి దీనితో రీప్లేస్ చేయి ---
+function approvePayment(payId, userId, amount) {
+    const coinsToAdd = amount * 10;
+    
+    // 1. యూజర్ అకౌంట్‌లో కాయిన్స్ పెంచి, మెంబర్‌షిప్‌ని యాక్టివ్ చేయడం
+    db.collection("Users").doc(userId).update({
+        coins: firebase.firestore.FieldValue.increment(coinsToAdd),
+        membership: "Active" 
+    }).then(() => {
+        // 2. పేమెంట్ స్టేటస్‌ని 'Approved' గా మార్చడం
+        return db.collection("Payments").doc(payId).update({ status: "Approved" });
+    }).then(() => {
+        alert("Success! User Activated & " + coinsToAdd + " Coins added.");
+    }).catch(err => {
+        alert("Error: " + err.message);
+    });
+}
     </script>
 </body>
 </html>
