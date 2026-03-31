@@ -49,13 +49,15 @@
             <h2 id="coinBalance">0</h2>
             <p>Coins (10 Coins = ₹1)</p>
         </div>
+        <div 
         <div class="card">
-            <h3>Add Coins</h3>
-            <p>Scan & Pay to add money</p>
-            <div id="qr-box"><img src="qr.png"></div>
-            <input type="number" id="payAmount" placeholder="Amount paid (₹)">
-            <button onclick="requestCoins()" style="background:var(--secondary)">I have Paid - Request Coins</button>
-        </div>
+    <h3>Add Coins (₹1 = 10 Coins)</h3>
+    <input type="number" id="payAmount" placeholder="Enter Amount (e.g. 1200)" style="width:80%; padding:10px; margin-bottom:10px;">
+    <input type="text" id="utrId" placeholder="Enter UPI UTR / Transaction ID" style="width:80%; padding:10px; margin-bottom:10px;">
+    <p>Scan QR & Pay, then enter UTR above.</p>
+    <img src="qr.png" width="150"><br>
+    <button onclick="requestCoins()" style="background:#28a745; color:white; padding:10px 20px; border:none; border-radius:5px; cursor:pointer;">Request Coins</button>
+</div>    
     </div>
 
     <div id="home">
@@ -163,16 +165,26 @@ function loadRides() {
 }
 
 function requestCoins() {
-    const amt = document.getElementById('payAmount').value;
+    const amount = document.getElementById('payAmount').value;
+    const utr = document.getElementById('utrId').value;
+
+    if (!amount || !utr) {
+        alert("Please enter both Amount and UTR Number!");
+        return;
+    }
+
     db.collection("Payments").add({
         userId: auth.currentUser.uid,
         userName: auth.currentUser.displayName,
-        amount: amt,
+        amount: Number(amount),
+        utr: utr,
         status: "Pending",
         time: Date.now()
-    });
-    alert("Request sent to Admin!");
-}
+    }).then(() => {
+        alert("Success! Admin will verify UTR: " + utr + " and add coins soon.");
+        document.getElementById('utrId').value = ""; // Clear input
+    }).catch(err => alert("Error: " + err.message));
+    }
 
 function updateUI() {
     db.collection("Users").doc(auth.currentUser.uid).onSnapshot(doc => {
