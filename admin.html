@@ -102,7 +102,7 @@ function loadPayments() {
                 
                 snap.forEach(doc => {
                     const r = doc.data();
-                    div.innerHTML += `<div class="card">${r.from} ➔ ${r.to} | Status: <b>${r.status}</b></div>`;
+                    div.innerHTML += `<div class="card">${r.from} ➔ ${r.route}  ➔  ${r.to} | Status: <b>${r.status}</b></div>`;
                 });
             });
         }
