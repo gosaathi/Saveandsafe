@@ -128,10 +128,48 @@ function checkUserInDB(user) {
 }
 
 // --- NAVIGATION ---
+// 1. పేజీలను మార్చే ఫంక్షన్ (దీన్ని అప్‌డేట్ చేయి)
 function showPage(pageId) {
-    document.querySelectorAll('.container > div').forEach(div => div.classList.add('hidden'));
-    document.getElementById(pageId).classList.remove('hidden');
-    if(pageId === 'home') loadRides();
+    // అన్ని పేజీలను దాచిపెట్టు
+    const pages = ['home', 'wallet', 'profile', 'activation-screen', 'login-screen'];
+    pages.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+
+    // అడిగిన పేజీని మాత్రం చూపించు
+    const target = document.getElementById(pageId);
+    if (target) target.style.display = 'block';
+}
+
+// 2. Auth Listener లో మార్పు
+firebase.auth().onAuthStateChanged((user) => {
+    if (user) {
+        // లాగిన్ అయ్యాక నేరుగా హోమ్ కి వెళ్ళకుండా, స్టేటస్ చెక్ చేయాలి
+        checkUserStatus(user);
+    } else {
+        showPage('login-screen');
+    }
+});
+
+// 3. User Status ని బట్టి నిర్ణయం
+function checkUserStatus(user) {
+    db.collection("Users").doc(user.uid).onSnapshot((doc) => {
+        if (doc.exists) {
+            const data = doc.data();
+            if (data.membership === "Active") {
+                showPage('home'); // అకౌంట్ ఓకే అయితే హోమ్ కి
+                   // document.querySelectorAll('.container > div').forEach(div => div.classList.add('hidden'));
+                   // document.getElementById(pageId).classList.remove('hidden');
+                     if(pageId === 'home') loadRides();
+            } else {
+                showPage('activation-screen'); // లేదంటే యాక్టివేషన్ స్క్రీన్ కి
+            }
+        } else {
+            // కొత్త యూజర్ అయితే పెండింగ్ తో క్రియేట్ చేయాలి
+            handleNewUser(user);
+        }
+    });
 }
 
 // --- LOGIC ---
