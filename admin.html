@@ -73,26 +73,27 @@
             loadRides();
         }
 
-        function loadPayments() {
-            db.collection("Payments").where("status", "==", "Pending").onSnapshot(snap => {
-                const div = document.getElementById('pendingPayments');
-                div.innerHTML = "";
-                if (snap.empty) div.innerHTML = "<p>No pending requests.</p>";
-                
-                snap.forEach(doc => {
-                    const p = doc.data();
-                    div.innerHTML += `
-                        <div class="card">
-                            <b>User:</b> ${p.userName || 'Unknown'} <br>
-                            <b>Amount:</b> ₹${p.amount} <br>
-                            <button class="btn-approve" onclick="approvePayment('${doc.id}', '${p.userId}', ${p.amount})">
-                                Approve ${p.amount * 10} Coins
-                            </button>
-                        </div>`;
-                });
-            });
-        }
+function loadPayments() {
+    db.collection("Payments").where("status", "==", "Pending").onSnapshot(snap => {
+        const div = document.getElementById('pendingPayments');
+        div.innerHTML = "";
+        if (snap.empty) { div.innerHTML = "No pending requests."; return; }
 
+        snap.forEach(doc => {
+            const p = doc.data();
+            div.innerHTML += `
+                <div class="card">
+                    <b>User:</b> ${p.userName} <br>
+                    <b>Amount:</b> ₹${p.amount} <br>
+                    <b>UTR ID:</b> <span style="color:#ffcc00; font-size:1.2em;">${p.utr}</span> <br>
+                    <div style="margin-top:10px;">
+                        <button class="btn-approve" onclick="approvePayment('${doc.id}', '${p.userId}', ${p.amount})">Approve</button>
+                        <button onclick="rejectPayment('${doc.id}')" style="background:#555; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer;">Reject</button>
+                    </div>
+                </div>`;
+        });
+    });
+}
         function loadRides() {
             db.collection("Rides").onSnapshot(snap => {
                 const div = document.getElementById('allRides');
